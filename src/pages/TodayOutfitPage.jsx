@@ -67,7 +67,7 @@ const TodayOutfitPage = () => {
 
   // 3. 삭제 버튼 핸들러
   const handleDelete = () => {
-    if (window.confirm("정말 이 코디를 삭제하시겠습니까?")) {
+    if (window.confirm("정말 삭제하시겠습니까?")) {
       saveOutfit(dateKey, { top: "", bottom: "", etc: "" }); // 저장소 삭제
 
       // 입력창 및 초기 상태 리셋
@@ -154,8 +154,6 @@ const TodayOutfitPage = () => {
 };
 
 export default TodayOutfitPage;
-
-// --- 스타일 컴포넌트 (기존 유지) ---
 
 const TopBar = styled.div`
   display: flex;
