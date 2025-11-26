@@ -9,6 +9,8 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
   const [bottom, setBottom] = useState(initialOutfit?.bottom || "");
   const [etc, setEtc] = useState(initialOutfit?.etc || "");
 
+  // [삭제됨] saved 상태 관리 코드는 이제 필요 없어서 지웠습니다.
+
   useEffect(() => {
     setTop(initialOutfit?.top ?? "");
     setBottom(initialOutfit?.bottom ?? "");
@@ -17,45 +19,90 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
 
   if (!dateKey) return null;
 
+  const handleCancel = () => {
+    // 초기값(없으면 빈 문자열)과 현재 값을 비교
+    const isChanged =
+      top !== (initialOutfit?.top || "") ||
+      bottom !== (initialOutfit?.bottom || "") ||
+      etc !== (initialOutfit?.etc || "");
+
+    if (isChanged) {
+      // 변경된 내용이 있으면 물어봄
+      if (
+        window.confirm("변경 사항이 저장되지 않습니다. 정말 나가시겠습니까?")
+      ) {
+        onClose();
+      }
+    } else {
+      // 변경된 게 없으면 그냥 닫음
+      onClose();
+    }
+  };
+
+  // 저장 버튼 핸들러
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({ top, bottom, etc });
-    //onClose();
+
+    alert("저장 되었습니다!");
   };
+
+  // 삭제 버튼 핸들러
+  const handleDelete = () => {
+    if (window.confirm("정말 삭제하시겠습니까?")) {
+      onSave({ top: "", bottom: "", etc: "" });
+      setTop("");
+      setBottom("");
+      setEtc("");
+      // 삭제 후에도 별도 버튼 변화 없이 그대로 유지
+    }
+  };
+
+  const hasData = top || bottom || etc;
 
   return (
     <ModalWrapper>
       <ModalBox>
         <Title>{dateKey} 코디</Title>
 
-        {/* 🔥 상의 / 하의 가로 정렬 구간 */}
-        <RowBox>
-          <Field>
-            <FieldLabel>상의</FieldLabel>
-            <SelectBox onClick={() => navigate("/closet?type=top")}>
-              {top || "옷장에서 상의 선택"}
-            </SelectBox>
+        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+          <RowBox>
+            <Field>
+              <FieldLabel>상의</FieldLabel>
+              <SelectBox onClick={() => navigate("/closet?type=top")}>
+                {top || "옷장에서 상의 선택"}
+              </SelectBox>
+            </Field>
+
+            <Field>
+              <FieldLabel>하의</FieldLabel>
+              <SelectBox onClick={() => navigate("/closet?type=bottom")}>
+                {bottom || "옷장에서 하의 선택"}
+              </SelectBox>
+            </Field>
+          </RowBox>
+
+          <Field style={{ marginTop: 16 }}>
+            <FieldLabel>메모</FieldLabel>
+            <MemoArea value={etc} onChange={(e) => setEtc(e.target.value)} />
           </Field>
 
-          <Field>
-            <FieldLabel>하의</FieldLabel>
-            <SelectBox onClick={() => navigate("/closet?type=top")}>
-              {top || "옷장에서 하의 선택"}
-            </SelectBox>
-          </Field>
-        </RowBox>
+          <ButtonRow>
+            {/* 데이터가 있으면 삭제 버튼 표시 */}
+            {hasData && (
+              <DeleteButton type="button" onClick={handleDelete}>
+                삭제
+              </DeleteButton>
+            )}
 
-        <Field style={{ marginTop: 16 }}>
-          <FieldLabel>메모</FieldLabel>
-          <MemoArea value={etc} onChange={(e) => setEtc(e.target.value)} />
-        </Field>
+            <SecondaryButton type="button" onClick={handleCancel}>
+              취소
+            </SecondaryButton>
 
-        <ButtonRow>
-          <SecondaryButton type="button" onClick={onClose}>
-            취소
-          </SecondaryButton>
-          <PrimaryButton type="submit">저장</PrimaryButton>
-        </ButtonRow>
+            {/* [수정됨] 조건문 없이 항상 "저장"으로 표시 */}
+            <PrimaryButton type="submit">저장</PrimaryButton>
+          </ButtonRow>
+        </form>
       </ModalBox>
     </ModalWrapper>
   );
@@ -67,15 +114,6 @@ const ModalWrapper = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -102,10 +140,6 @@ const Title = styled.h2`
   font-size: 26px;
   font-weight: 700;
   color: #3c2a1b;
-`;
-
-const Form = styled.form`
-  margin-top: 4px;
 `;
 
 const RowBox = styled.div`
@@ -167,6 +201,22 @@ const ButtonRow = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 22px;
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 18px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: auto;
+
+  &:hover {
+    background: #c0392b;
+  }
 `;
 
 const SecondaryButton = styled.button`
