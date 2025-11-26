@@ -24,6 +24,14 @@ const TodayOutfitPage = () => {
   const [bottom, setBottom] = useState("");
   const [etc, setEtc] = useState("");
 
+  // 🔥 [추가됨] 처음에 불러온 데이터를 기억하는 변수 (비교용)
+  const [initialState, setInitialState] = useState({
+    top: "",
+    bottom: "",
+    etc: "",
+  });
+
+  // 1. 데이터 불러오기
   useEffect(() => {
     if (dateKey) {
       const savedData = getOutfit(dateKey);
@@ -31,35 +39,65 @@ const TodayOutfitPage = () => {
         setTop(savedData.top || "");
         setBottom(savedData.bottom || "");
         setEtc(savedData.etc || "");
+        // 불러온 데이터를 초기 상태로 설정
+        setInitialState({
+          top: savedData.top || "",
+          bottom: savedData.bottom || "",
+          etc: savedData.etc || "",
+        });
       } else {
         setTop("");
         setBottom("");
         setEtc("");
+        setInitialState({ top: "", bottom: "", etc: "" });
       }
     }
   }, [dateKey]);
 
-  // 2. 저장 버튼 핸들러 (Alert만 띄움)
+  // 2. 저장 버튼 핸들러
   const handleSubmit = (e) => {
     e.preventDefault();
     saveOutfit(dateKey, { top, bottom, etc });
+
+    // 저장했으면 현재 상태가 새로운 초기 상태가 됨 (경고 안 뜨게)
+    setInitialState({ top, bottom, etc });
+
     alert("저장 되었습니다!");
   };
 
   // 3. 삭제 버튼 핸들러
   const handleDelete = () => {
-    if (window.confirm("정말 삭제하시겠습니까?")) {
+    if (window.confirm("정말 이 코디를 삭제하시겠습니까?")) {
+      saveOutfit(dateKey, { top: "", bottom: "", etc: "" }); // 저장소 삭제
+
+      // 입력창 및 초기 상태 리셋
       setTop("");
       setBottom("");
       setEtc("");
-      saveOutfit(dateKey, { top: "", bottom: "", etc: "" });
+      setInitialState({ top: "", bottom: "", etc: "" });
+
       alert("삭제되었습니다.");
     }
   };
 
-  // 뒤로가기 (변경사항 확인 기능 추가 가능, 현재는 바로 이동)
+  // 🔥 [추가됨] 뒤로가기 버튼 핸들러 (변경사항 체크)
   const handleBack = () => {
-    navigate("/calendar");
+    // 현재 입력값과 초기값을 비교
+    const isChanged =
+      top !== initialState.top ||
+      bottom !== initialState.bottom ||
+      etc !== initialState.etc;
+
+    if (isChanged) {
+      if (
+        window.confirm("변경 사항이 저장되지 않습니다. 정말 나가시겠습니까?")
+      ) {
+        navigate("/calendar");
+      }
+    } else {
+      // 변경된 게 없으면 그냥 이동
+      navigate("/calendar");
+    }
   };
 
   const hasData = top || bottom || etc;
@@ -67,6 +105,7 @@ const TodayOutfitPage = () => {
   return (
     <main>
       <TopBar>
+        {/* 뒤로가기 버튼에 handleBack 함수 연결 */}
         <BackButton onClick={handleBack}>← Calendar</BackButton>
       </TopBar>
 
@@ -116,7 +155,7 @@ const TodayOutfitPage = () => {
 
 export default TodayOutfitPage;
 
-// --- 스타일 컴포넌트 ---
+// --- 스타일 컴포넌트 (기존 유지) ---
 
 const TopBar = styled.div`
   display: flex;
