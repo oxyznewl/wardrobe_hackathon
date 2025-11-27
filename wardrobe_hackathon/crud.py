@@ -259,3 +259,27 @@ def get_best_combinations(db: Session):
     # ID 조합을 이름 조합으로 변경해서 리턴하고 싶다면 추가 로직 필요
     # 현재는 가장 많이 입은 ID 조합 그대로 리턴 ((1, 3), 5) 형식
     return combo_counter.most_common()
+
+def delete_clothes(db: Session, clothes_id: int):
+    # 1. 지우려는 옷 찾기
+    item = db.query(Clothes).filter(Clothes.id == clothes_id).first()
+    
+    # 2. 없으면 False 반환
+    if not item:
+        return False
+    
+    # 3. 있으면 삭제 실행
+    db.delete(item)
+    db.commit()
+    return True
+
+def delete_wear_log(db: Session, wear_log_id: int):
+    # 1. 지우려는 기록 찾기
+    log = db.query(WearLog).filter(WearLog.id == wear_log_id).first()
+    
+    if not log:
+        return False
+    
+    db.delete(log)
+    db.commit()
+    return True

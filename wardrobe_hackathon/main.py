@@ -3,11 +3,11 @@ from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date, datetime, timedelta # timedelta 추가
-
+from datetime import date, datetime, timedelta #datetime : 날짜와 시간을 다루기 위한 내장 라이브러리
 # DB 관련 임포트
 from sqlalchemy.orm import joinedload, Session
 from database import SessionLocal, engine, Base 
+#파일 불러오기
 import models 
 from models import Clothes, WearLog # models.py에서 정의한 클래스 사용
 import crud
@@ -52,11 +52,6 @@ class WearLogIn(BaseModel):
 class DateRange(BaseModel):
     start_date: date
     end_date: date
-
-# ---------------------------------------------------------
-# [주의] 여기에 있던 class Clothes, class WearLog 정의는 삭제했습니다.
-# models.py에 있는 것을 사용해야 충돌이 나지 않습니다.
-# ---------------------------------------------------------
 
 # ---- Clothes endpoints ----
 @app.post("/api/clothes", tags=["clothes"])
@@ -173,3 +168,18 @@ def get_combination_stats(db: Session = Depends(get_db)):
 @app.get("/")
 def root():
     return {"message": "Hello FastAPI!"}
+
+@app.delete("/api/clothes/{clothes_id}", tags=["clothes"])
+def api_delete_clothes(clothes_id: int, db: Session = Depends(get_db)):
+    success = crud.delete_clothes(db, clothes_id)
+    if not success:
+        # 404 Not Found: 해당 ID의 옷이 없을 때
+        raise HTTPException(status_code=404, detail="Clothes not found")
+    return {"status": "deleted", "id": clothes_id}
+
+@app.delete("/api/wearlog/{wear_log_id}", tags=["wearlog"])
+def api_delete_wearlog(wear_log_id: int, db: Session = Depends(get_db)):
+    success = crud.delete_wear_log(db, wear_log_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="WearLog not found")
+    return {"status": "deleted", "id": wear_log_id}
