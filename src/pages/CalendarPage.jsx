@@ -108,7 +108,7 @@ const CalendarPage = () => {
         year={year}
         month={month}
         onClickDate={handleClickDate}
-        outfitsByDate={outfits}
+        outfits={outfits}
       />
 
       <OutfitModal

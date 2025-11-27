@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-// 달력 계산 함수 (건들지 않음)
 const createMonthMatrix = (year, month) => {
   const firstDay = new Date(year, month, 1);
   const startWeekDay = firstDay.getDay();
@@ -17,7 +16,6 @@ const createMonthMatrix = (year, month) => {
   return weeks;
 };
 
-// 3. props에서 불필요한 것(onClickDate, outfitsByDate) 제거
 const Calendar = ({ year, month, onClickDate, outfits }) => {
   const weeks = useMemo(() => createMonthMatrix(year, month), [year, month]);
 
@@ -44,6 +42,7 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
         borderRadius: "18px",
         overflow: "hidden",
         boxShadow: "0 10px 20px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.05)",
+        tableLayout: "fixed",
       }}
     >
       <thead>
@@ -84,8 +83,11 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                 );
 
               const key = getDateKey(d);
-              // 6. Context 데이터(outfits)에 해당 날짜 기록이 있는지 확인
+
+              const outfitData = outfits ? outfits[key] : null;
               const hasOutfit = outfits && !!outfits[key];
+              const memo = outfitData ? outfitData.etc : "";
+
               const isToday = key === todayKey;
 
               return (
@@ -101,6 +103,7 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                     background: isToday ? "#f8e9e1ff" : "white",
                     padding: "6px",
                     transition: "0.2s",
+                    position: "relative",
                   }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = "#f4dccdff")
@@ -116,22 +119,33 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                       fontSize: "13px",
                       fontWeight: 600,
                       marginBottom: "4px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
                     {d}
                   </div>
 
-                  {/* 기록이 있는 날짜 표시용 동그라미 점 */}
-                  {hasOutfit && (
+                  {memo && (
                     <div
                       style={{
-                        width: "6px",
-                        height: "6px",
-                        background: "#6d4a2a",
-                        borderRadius: "50%",
-                        marginTop: "3px",
+                        fontSize: "11px",
+                        color: "#4a3b2f",
+                        marginTop: "4px",
+                        background: "#f4efe9",
+                        borderRadius: "5px",
+                        padding: "2px 6px",
+
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        maxWidth: "100%",
+                        display: "block",
                       }}
-                    ></div>
+                    >
+                      {memo}
+                    </div>
                   )}
                 </td>
               );
