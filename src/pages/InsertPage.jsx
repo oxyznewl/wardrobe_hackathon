@@ -40,6 +40,9 @@ const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
       image_preview.current.children[0].setAttribute("src", imgURL);
     }
   }
+
+  //TODO: 입력받은 이미지, 이름, 카테고리, 계절 정보 저장해서 새 옷 등록 기능 구현(DB연동하기)
+
   return (
     <InputBox>
       <h2>새 옷 등록하기</h2>

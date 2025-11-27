@@ -14,6 +14,8 @@ const ClosetPage = () => {
   const [sort, setSort] = useState("newest"); // 선택된 정렬기준
   const category = searchParams.get("type"); //선택된 카테고리
 
+  //TODO: 분류 불안정한 거 약간 손보기(맨 처음 closet 진입 시 'all'로 설정 등)
+
   return (
     <main>
       <TopBar>

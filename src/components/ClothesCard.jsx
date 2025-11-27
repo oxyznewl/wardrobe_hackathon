@@ -8,6 +8,9 @@ const ClothesCard = ({ id, item, image }) => {
     navigate(`/detail?id=${id}`);
   };
 
+  //TODO: 이미지 표시하기
+  //TODO: 디자인 보충하기
+
   return (
     <Div onClick={handleCardClick}>
       <p>{item}</p>

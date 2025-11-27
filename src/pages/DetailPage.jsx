@@ -12,6 +12,10 @@ const DetailPage = () => {
     navigate(-1); //스택에서 pop (=이전 페이지로 이동)
   };
 
+  //TODO: id에 해당하는 옷 정보 받아오기 (DB연동?)
+  //TODO: 옷 삭제 구현 후 DB업데이트?
+  //TODO: 디자인 보충
+
   return (
     <div>
       <h2>상세 페이지</h2>
@@ -19,9 +23,49 @@ const DetailPage = () => {
       <p>이름</p>
       <p>카테고리</p>
       <p>계절</p>
-      <button>옷 삭제하기</button>
-      <button onClick={handleBackClick}>뒤로가기</button>
+      <p>입은 횟수</p>
+      <Buttons>
+        <DeleteButton>옷 삭제하기</DeleteButton>
+        <BackButton onClick={handleBackClick}>뒤로가기</BackButton>
+      </Buttons>
     </div>
   );
 };
+
 export default DetailPage;
+
+const Buttons = styled.div`
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 18px;
+  background: #880000;
+  color: white;
+  border: 1px solid #770000;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 6px;
+
+  &:hover {
+    background: #800000;
+  }
+`;
+
+const BackButton = styled.button`
+  padding: 8px 18px;
+  background: #6d4a2a;
+  color: white;
+  border: 1px solid #6d4a2a;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 6px;
+
+  &:hover {
+    background: #8c633d;
+  }
+`;
