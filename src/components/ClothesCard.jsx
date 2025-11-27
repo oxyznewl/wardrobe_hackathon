@@ -1,9 +1,15 @@
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
-const ClothesCard = ({ key, item }) => {
+const ClothesCard = ({ id, item, image }) => {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/detail?id=${id}`);
+  };
+
   return (
-    <Div>
-      <p>{key}</p>
+    <Div onClick={handleCardClick}>
       <p>{item}</p>
     </Div>
   );

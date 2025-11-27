@@ -29,30 +29,6 @@ const ClothesList = ({ seasons, category, sort }) => {
       wearCount: 1,
       image: "",
     },
-    {
-      id: 4,
-      name: "린넨 셔츠",
-      category: "top",
-      seasons: ["여름"],
-      wearCount: 1,
-      image: "",
-    },
-    {
-      id: 5,
-      name: "린넨 셔츠",
-      category: "top",
-      seasons: ["여름"],
-      wearCount: 1,
-      image: "",
-    },
-    {
-      id: 6,
-      name: "린넨 셔츠",
-      category: "top",
-      seasons: ["여름"],
-      wearCount: 1,
-      image: "",
-    },
   ];
 
   // 필터링
@@ -89,7 +65,7 @@ const ClothesList = ({ seasons, category, sort }) => {
   return (
     <Grid>
       {filtered.map((item) => (
-        <ClothesCard key={item.id} item={item.name} />
+        <ClothesCard id={item.id} item={item.name} image={item.image} />
       ))}
     </Grid>
   );
