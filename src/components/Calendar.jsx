@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+// 달력 계산 함수 (건들지 않음)
 const createMonthMatrix = (year, month) => {
   const firstDay = new Date(year, month, 1);
   const startWeekDay = firstDay.getDay();
@@ -16,7 +17,8 @@ const createMonthMatrix = (year, month) => {
   return weeks;
 };
 
-const Calendar = ({ year, month, onClickDate, outfitsByDate }) => {
+// 3. props에서 불필요한 것(onClickDate, outfitsByDate) 제거
+const Calendar = ({ year, month, onClickDate, outfits }) => {
   const weeks = useMemo(() => createMonthMatrix(year, month), [year, month]);
 
   const today = new Date();
@@ -82,12 +84,14 @@ const Calendar = ({ year, month, onClickDate, outfitsByDate }) => {
                 );
 
               const key = getDateKey(d);
-              const hasOutfit = !!outfitsByDate[key];
+              // 6. Context 데이터(outfits)에 해당 날짜 기록이 있는지 확인
+              const hasOutfit = outfits && !!outfits[key];
               const isToday = key === todayKey;
 
               return (
                 <td
                   key={di}
+                  // 7. 클릭 이벤트 연결 (navigate 사용)
                   onClick={() => onClickDate(key)}
                   style={{
                     height: "70px",

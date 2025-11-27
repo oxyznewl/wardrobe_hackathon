@@ -1,11 +1,13 @@
 import styled from "styled-components";
+import { useOutfit } from "../context/OutfitContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Calendar from "../components/Calendar";
 import OutfitModal from "../components/OutfitModal";
 
-const CalendarPage = ({ outfitsByDate, onSaveOutfit }) => {
+const CalendarPage = () => {
   const navigate = useNavigate();
+  const { outfits, saveOutfit } = useOutfit();
 
   const now = new Date();
   const [currentYM, setCurrentYM] = useState({
@@ -26,12 +28,13 @@ const CalendarPage = ({ outfitsByDate, onSaveOutfit }) => {
   };
 
   const handleSave = (outfitData) => {
-    onSaveOutfit(selectedDateKey, outfitData);
+    saveOutfit(selectedDateKey, outfitData);
+    //handleCloseModal();
   };
 
   const initialOutfit =
-    selectedDateKey && outfitsByDate[selectedDateKey]
-      ? outfitsByDate[selectedDateKey]
+    selectedDateKey && outfits[selectedDateKey]
+      ? outfits[selectedDateKey]
       : null;
 
   // 🔽 이전 달로 이동
@@ -105,7 +108,7 @@ const CalendarPage = ({ outfitsByDate, onSaveOutfit }) => {
         year={year}
         month={month}
         onClickDate={handleClickDate}
-        outfitsByDate={outfitsByDate}
+        outfitsByDate={outfits}
       />
 
       <OutfitModal

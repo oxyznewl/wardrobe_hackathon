@@ -17,45 +17,82 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
 
   if (!dateKey) return null;
 
+  const handleCancel = () => {
+    const isChanged =
+      top !== (initialOutfit?.top || "") ||
+      bottom !== (initialOutfit?.bottom || "") ||
+      etc !== (initialOutfit?.etc || "");
+
+    if (isChanged) {
+      if (
+        window.confirm("변경 사항이 저장되지 않습니다. 정말 나가시겠습니까?")
+      ) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({ top, bottom, etc });
-    //onClose();
+
+    alert("저장 되었습니다!");
   };
+
+  const handleDelete = () => {
+    if (window.confirm("정말 삭제하시겠습니까?")) {
+      onSave({ top: "", bottom: "", etc: "" });
+      setTop("");
+      setBottom("");
+      setEtc("");
+    }
+  };
+
+  const hasData = top || bottom || etc;
 
   return (
     <ModalWrapper>
       <ModalBox>
         <Title>{dateKey} 코디</Title>
 
-        {/* 🔥 상의 / 하의 가로 정렬 구간 */}
-        <RowBox>
-          <Field>
-            <FieldLabel>상의</FieldLabel>
-            <SelectBox onClick={() => navigate("/closet?type=top")}>
-              {top || "옷장에서 상의 선택"}
-            </SelectBox>
+        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+          <RowBox>
+            <Field>
+              <FieldLabel>상의</FieldLabel>
+              <SelectBox onClick={() => navigate("/closet?type=top")}>
+                {top || "옷장에서 상의 선택"}
+              </SelectBox>
+            </Field>
+
+            <Field>
+              <FieldLabel>하의</FieldLabel>
+              <SelectBox onClick={() => navigate("/closet?type=bottom")}>
+                {bottom || "옷장에서 하의 선택"}
+              </SelectBox>
+            </Field>
+          </RowBox>
+
+          <Field style={{ marginTop: 16 }}>
+            <FieldLabel>메모</FieldLabel>
+            <MemoArea value={etc} onChange={(e) => setEtc(e.target.value)} />
           </Field>
 
-          <Field>
-            <FieldLabel>하의</FieldLabel>
-            <SelectBox onClick={() => navigate("/closet?type=bottom")}>
-              {top || "옷장에서 하의 선택"}
-            </SelectBox>
-          </Field>
-        </RowBox>
+          <ButtonRow>
+            {hasData && (
+              <DeleteButton type="button" onClick={handleDelete}>
+                삭제
+              </DeleteButton>
+            )}
 
-        <Field style={{ marginTop: 16 }}>
-          <FieldLabel>메모</FieldLabel>
-          <MemoArea value={etc} onChange={(e) => setEtc(e.target.value)} />
-        </Field>
+            <SecondaryButton type="button" onClick={handleCancel}>
+              취소
+            </SecondaryButton>
 
-        <ButtonRow>
-          <SecondaryButton type="button" onClick={onClose}>
-            취소
-          </SecondaryButton>
-          <PrimaryButton type="submit">저장</PrimaryButton>
-        </ButtonRow>
+            <PrimaryButton type="submit">저장</PrimaryButton>
+          </ButtonRow>
+        </form>
       </ModalBox>
     </ModalWrapper>
   );
@@ -67,15 +104,6 @@ const ModalWrapper = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -102,10 +130,6 @@ const Title = styled.h2`
   font-size: 26px;
   font-weight: 700;
   color: #3c2a1b;
-`;
-
-const Form = styled.form`
-  margin-top: 4px;
 `;
 
 const RowBox = styled.div`
@@ -167,6 +191,22 @@ const ButtonRow = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 22px;
+`;
+
+const DeleteButton = styled.button`
+  padding: 8px 18px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: auto;
+
+  &:hover {
+    background: #c0392b;
+  }
 `;
 
 const SecondaryButton = styled.button`
