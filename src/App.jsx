@@ -40,7 +40,10 @@ function App() {
             />
           }
         />
-        <Route path="/today" element={<TodayOutfitPage />} />{" "}
+        <Route
+          path="/today"
+          element={<TodayOutfitPage onSaveOutfit={saveOutfit} />}
+        />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/closet" element={<ClosetPage />} />
         <Route path="/insert" element={<InsertPage />} />

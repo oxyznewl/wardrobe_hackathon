@@ -47,7 +47,6 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
       setTop("");
       setBottom("");
       setEtc("");
-      // 삭제 후에도 별도 버튼 변화 없이 그대로 유지
     }
   };
 
