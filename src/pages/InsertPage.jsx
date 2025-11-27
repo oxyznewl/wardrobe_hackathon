@@ -1,9 +1,10 @@
 import styled from "styled-components";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
 
-const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
+const InsertPage = () => {
+  const [name, setName] = useState("");
+  const [image, setImage] = useState(null);
   const [category, setCategory] = useState("");
   const [selectedSeasons, setSelectedSeasons] = useState([]);
 
@@ -12,7 +13,6 @@ const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
 
   const handleCategory = (e) => {
     setCategory(e.target.value);
-    onCategoryChange(e.target.value);
   };
 
   const toggleSeason = (season) => {
@@ -23,23 +23,41 @@ const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
       updated = [...selectedSeasons, season];
     }
     setSelectedSeasons(updated);
-    onSeasonChange(updated);
   };
 
   const navigate = useNavigate();
 
-  const image_preview = useRef();
-  const image_input = useRef();
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    if (name === "image") {
-      const imgURL = URL.createObjectURL(e.target.files[0]);
-      image_input.current.setAttribute("style", "display: none;");
-      image_preview.current.setAttribute("style", "display: flex");
-      image_preview.current.children[0].setAttribute("src", imgURL);
+    const preview = URL.createObjectURL(file);
+    setImage({ file, preview });
+  };
+
+  const handleSubmitClick = () => {
+    if (!image) {
+      alert("이미지를 등록해주세요.");
+      return;
     }
-  }
+    if (name === "") {
+      alert("이름을 입력해주세요.");
+      return;
+    }
+    if (category === "" || category === "카테고리 선택") {
+      alert("카테고리를 선택해주세요.");
+      return;
+    }
+    if (selectedSeasons.length === 0) {
+      alert("계절을 하나 이상 선택해주세요.");
+      return;
+    }
+
+    //등록 로직 실행
+
+    alert("등록 되었습니다.");
+    navigate("/closet");
+  };
 
   //TODO: 입력받은 이미지, 이름, 카테고리, 계절 정보 저장해서 새 옷 등록 기능 구현(DB연동하기)
 
@@ -48,26 +66,22 @@ const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
       <h2>새 옷 등록하기</h2>
       <ImageInputWrapper>
         <label htmlFor="input_file">
-          <ImagePreview ref={image_input} className="image_file">
-            이미지 업로드
-          </ImagePreview>
-          <ImagePreview
-            ref={image_preview}
-            className="image_preview"
-            style={{ display: "none" }}
-          >
-            <Img src=""></Img>
+          <ImagePreview>
+            {image ? <Img src={image.preview} /> : "이미지 업로드"}
           </ImagePreview>
         </label>
         <ImageInput
           type="file"
-          name="image"
           id="input_file"
           accept="image/*"
-          onChange={handleChange}
+          onChange={handleImageChange}
         />
       </ImageInputWrapper>
-      <Name placeholder="이름"></Name>
+      <Name
+        placeholder="이름"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      ></Name>
       <Select value={category} onChange={handleCategory}>
         {CATEGORIES.map((cat) => (
           <option key={cat} value={cat}>
@@ -87,7 +101,7 @@ const InsertPage = ({ onCategoryChange, onSeasonChange }) => {
           </label>
         ))}
       </Option>
-      <InsertButton onClick={() => navigate("/closet")}>등록</InsertButton>
+      <InsertButton onClick={handleSubmitClick}>등록</InsertButton>
     </InputBox>
   );
 };
