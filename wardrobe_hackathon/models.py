@@ -1,18 +1,17 @@
-# models.py
-from sqlalchemy import (
-    Column, Integer, String, Date, Table, ForeignKey, JSON, create_engine, MetaData
-)
-from sqlalchemy.orm import registry, relationship, declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, Date, Table, ForeignKey
+from sqlalchemy.orm import relationship
 import datetime
-import os
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./wardrobe.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+# 핵심 변경 사항: database.py에서 Base를 가져옵니다.
+# 이렇게 해야 main.py, database.py, models.py가 모두 같은 설정을 공유합니다.
+from database import Base 
 
-Base = declarative_base()
+# ---------------------------------------------------------
+# 여기서부터는 DB 설정(engine, SessionLocal)을 하지 않습니다.
+# 오직 테이블(모델) 정의만 합니다.
+# ---------------------------------------------------------
 
-# Association table: wear_log_item (many-to-many between wear_log and clothes)
+# Association table: wear_log_item
 wear_log_item = Table(
     "wear_log_item",
     Base.metadata,
@@ -37,6 +36,3 @@ class WearLog(Base):
     date = Column(Date, nullable=False, index=True)
     # relationship:
     clothes = relationship("Clothes", secondary=wear_log_item, backref="wear_logs")
-
-def init_db():
-    Base.metadata.create_all(bind=engine)
