@@ -29,6 +29,30 @@ const ClothesList = ({ seasons, category, sort }) => {
       wearCount: 1,
       image: "",
     },
+    {
+      id: 4,
+      name: "린넨 셔츠",
+      category: "top",
+      seasons: ["여름"],
+      wearCount: 1,
+      image: "",
+    },
+    {
+      id: 5,
+      name: "린넨 셔츠",
+      category: "top",
+      seasons: ["여름"],
+      wearCount: 1,
+      image: "",
+    },
+    {
+      id: 6,
+      name: "린넨 셔츠",
+      category: "top",
+      seasons: ["여름"],
+      wearCount: 1,
+      image: "",
+    },
   ];
 
   // 필터링
@@ -76,7 +100,7 @@ export default ClothesList;
 // 스타일
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 20px;
+  gap: 40px;
   padding: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 `;
