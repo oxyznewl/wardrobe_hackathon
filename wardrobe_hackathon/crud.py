@@ -4,6 +4,8 @@ from sqlalchemy import select, func, and_, join
 from itertools import combinations
 from collections import Counter
 import datetime
+from sqlalchemy.orm import selectinload
+from datetime import date
 
 def create_clothes(name, category, seasons=None, color=None, image_url=None):
     db = SessionLocal()
@@ -74,30 +76,39 @@ def sleeping_items(threshold=1):
     db.close()
     return [{"clothes_id": r[0], "name": r[1], "count": r[2]} for r in rows]
 
-def pairs_between(start_date, end_date, min_count=1, limit=20):
-    logs = get_wear_logs_between(start_date, end_date)
-    counter = Counter()
-    for wl in logs:
-        ids = sorted(set(wl["clothes_ids"]))
-        for a,b in combinations(ids, 2):
-            counter[(a,b)] += 1
-    # filter and build response
-    out = []
-    for (a,b),c in counter.most_common():
-        if c >= min_count:
-            out.append({"pair": [a,b], "count": c})
-        if len(out) >= limit:
-            break
-    # resolve names
+def pairs_between(start: date, end: date, min_count:int=1, limit:int=10):
+    """
+    start, end: date
+    return: [{"pair":[id,id], "names":[name,name], "count":int}, ...]
+    """
     db = SessionLocal()
-    resp = []
-    for item in out:
-        a,b = item["pair"]
-        ca = db.get(Clothes, a)
-        cb = db.get(Clothes, b)
-        resp.append({"pair": [a,b], "names": [ca.name if ca else None, cb.name if cb else None], "count": item["count"]})
-    db.close()
-    return resp
+    try:
+        logs = db.query(WearLog).options(selectinload(WearLog.clothes))\
+                 .filter(WearLog.date >= start, WearLog.date <= end).all()
+
+        pair_counter = Counter()
+        for wl in logs:
+            ids = sorted([c.id for c in wl.clothes])
+            # 모든 2조합 카운트
+            for a,b in combinations(ids, 2):
+                pair_counter[(a,b)] += 1
+
+        # filter by min_count, sort by count desc
+        common = [(pair, cnt) for pair,cnt in pair_counter.items() if cnt >= min_count]
+        common.sort(key=lambda x: x[1], reverse=True)
+
+        out = []
+        for (a,b), cnt in common[:limit]:
+            a_obj = db.query(Clothes).get(a)
+            b_obj = db.query(Clothes).get(b)
+            out.append({
+                "pair": [a,b],
+                "names": [a_obj.name if a_obj else None, b_obj.name if b_obj else None],
+                "count": cnt
+            })
+        return out
+    finally:
+        db.close()
 
 def summary(start_date, end_date):
     db = SessionLocal()
