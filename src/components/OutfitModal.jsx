@@ -39,7 +39,7 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
 
           <Field>
             <FieldLabel>하의</FieldLabel>
-            <SelectBox onClick={() => navigate("/closet?type=top")}>
+            <SelectBox onClick={() => navigate("/closet?type=bottom")}>
               {top || "옷장에서 하의 선택"}
             </SelectBox>
           </Field>
