@@ -6,6 +6,8 @@ import CalendarPage from "./pages/CalendarPage";
 import TodayOutfitPage from "./pages/TodayOutfitPage";
 import StatsPage from "./pages/StatsPage";
 import ClosetPage from "./pages/ClosetPage";
+import InsertPage from "./pages/InsertPage";
+import DetailPage from "./pages/DetailPage";
 
 function App() {
   const [outfitsByDate, setOutfitsByDate] = useState({});
@@ -41,6 +43,8 @@ function App() {
         <Route path="/today" element={<TodayOutfitPage />} />{" "}
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/closet" element={<ClosetPage />} />
+        <Route path="/insert" element={<InsertPage />} />
+        <Route path="/detail" element={<DetailPage />} />
       </Routes>
     </div>
   );

@@ -9,8 +9,6 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
   const [bottom, setBottom] = useState(initialOutfit?.bottom || "");
   const [etc, setEtc] = useState(initialOutfit?.etc || "");
 
-  // [삭제됨] saved 상태 관리 코드는 이제 필요 없어서 지웠습니다.
-
   useEffect(() => {
     setTop(initialOutfit?.top ?? "");
     setBottom(initialOutfit?.bottom ?? "");
@@ -49,6 +47,7 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
       setTop("");
       setBottom("");
       setEtc("");
+      // 삭제 후에도 별도 버튼 변화 없이 그대로 유지
     }
   };
 
@@ -82,7 +81,6 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
           </Field>
 
           <ButtonRow>
-            {/* 데이터가 있으면 삭제 버튼 표시 */}
             {hasData && (
               <DeleteButton type="button" onClick={handleDelete}>
                 삭제
