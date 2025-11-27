@@ -20,26 +20,22 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
   if (!dateKey) return null;
 
   const handleCancel = () => {
-    // 초기값(없으면 빈 문자열)과 현재 값을 비교
     const isChanged =
       top !== (initialOutfit?.top || "") ||
       bottom !== (initialOutfit?.bottom || "") ||
       etc !== (initialOutfit?.etc || "");
 
     if (isChanged) {
-      // 변경된 내용이 있으면 물어봄
       if (
         window.confirm("변경 사항이 저장되지 않습니다. 정말 나가시겠습니까?")
       ) {
         onClose();
       }
     } else {
-      // 변경된 게 없으면 그냥 닫음
       onClose();
     }
   };
 
-  // 저장 버튼 핸들러
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({ top, bottom, etc });
@@ -47,14 +43,12 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
     alert("저장 되었습니다!");
   };
 
-  // 삭제 버튼 핸들러
   const handleDelete = () => {
     if (window.confirm("정말 삭제하시겠습니까?")) {
       onSave({ top: "", bottom: "", etc: "" });
       setTop("");
       setBottom("");
       setEtc("");
-      // 삭제 후에도 별도 버튼 변화 없이 그대로 유지
     }
   };
 
@@ -99,7 +93,6 @@ const OutfitModal = ({ dateKey, initialOutfit, onSave, onClose }) => {
               취소
             </SecondaryButton>
 
-            {/* [수정됨] 조건문 없이 항상 "저장"으로 표시 */}
             <PrimaryButton type="submit">저장</PrimaryButton>
           </ButtonRow>
         </form>
