@@ -1,11 +1,17 @@
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
-const ClothesCard = ({ id, item, image }) => {
+const ClothesCard = ({ id, item, image, onClick }) => {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/detail?id=${id}`);
+    if (onClick) {
+      // 페이지 이동 대신, 선택된 정보를 부모에게 넘겨줌
+      onClick({ id, name: item, image });
+    } else {
+      // 상세 페이지로 이동
+      navigate(`/detail?id=${id}`);
+    }
   };
 
   return (

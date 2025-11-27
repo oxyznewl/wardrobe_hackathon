@@ -38,6 +38,17 @@ const InsertPage = () => {
     setImage({ file, preview });
   };
 
+  // 취소 버튼 핸들러
+  const handleCancelClick = () => {
+    if (
+      window.confirm(
+        "옷 등록을 취소하시겠습니까?\n입력한 내용은 저장되지 않습니다."
+      )
+    ) {
+      navigate(-1);
+    }
+  };
+
   const handleSubmitClick = () => {
     if (!image) {
       alert("이미지를 등록해주세요.");
@@ -109,7 +120,11 @@ const InsertPage = () => {
           </label>
         ))}
       </Option>
-      <InsertButton onClick={handleSubmitClick}>등록</InsertButton>
+
+      <ButtonContainer>
+        <CancelButton onClick={handleCancelClick}>취소</CancelButton>
+        <InsertButton onClick={handleSubmitClick}>등록</InsertButton>
+      </ButtonContainer>
     </InputBox>
   );
 };
@@ -167,17 +182,36 @@ const Option = styled.div`
   gap: 20px;
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 15px;
+  margin-top: 6px;
+`;
+
 const InsertButton = styled.button`
-  padding: 8px 18px;
+  padding: 8px 24px;
   background: #6d4a2a;
   color: white;
   border: 1px solid #6d4a2a;
   border-radius: 20px;
   cursor: pointer;
   transition: background 0.2s ease;
-  margin-top: 6px;
 
   &:hover {
     background: #8c633d;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 8px 24px;
+  background: #e0e0e0;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #d0d0d0;
   }
 `;

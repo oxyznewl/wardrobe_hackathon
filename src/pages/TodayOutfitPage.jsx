@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { useOutfit } from "../context/OutfitContext";
+import { ClothesContext } from "../context/ClothesContext";
+import SelectionModal from "../components/SelectionModal";
 
 const getTodayKey = () => {
   const t = new Date();
@@ -18,48 +20,88 @@ const TodayOutfitPage = () => {
   const navigate = useNavigate();
   const { date: paramsDate } = useParams();
   const { saveOutfit, getOutfit } = useOutfit();
+  const { incrementWearCount, decrementWearCount } = useContext(ClothesContext);
+
   const dateKey = paramsDate || getTodayKey();
 
   const [top, setTop] = useState("");
   const [bottom, setBottom] = useState("");
   const [etc, setEtc] = useState("");
 
-  // 🔥 [추가됨] 처음에 불러온 데이터를 기억하는 변수 (비교용)
   const [initialState, setInitialState] = useState({
     top: "",
     bottom: "",
     etc: "",
   });
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTarget, setModalTarget] = useState("top");
+
   // 1. 데이터 불러오기
   useEffect(() => {
     if (dateKey) {
       const savedData = getOutfit(dateKey);
       if (savedData) {
+        // DB에서 불러온 데이터가 있으면 설정 (이미지는 없을 수 있음)
         setTop(savedData.top || "");
         setBottom(savedData.bottom || "");
         setEtc(savedData.etc || "");
-        // 불러온 데이터를 초기 상태로 설정
+
         setInitialState({
           top: savedData.top || "",
           bottom: savedData.bottom || "",
           etc: savedData.etc || "",
         });
       } else {
+        // 데이터가 없으면 초기화
         setTop("");
         setBottom("");
         setEtc("");
         setInitialState({ top: "", bottom: "", etc: "" });
       }
     }
-  }, [dateKey]);
+  }, [dateKey, getOutfit]);
 
   // 2. 저장 버튼 핸들러
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // 1. 변경 여부 확인
+    const isSameTop = top?.id === initialState.top?.id;
+    const isSameBottom = bottom?.id === initialState.bottom?.id;
+    const isSameEtc = etc === initialState.etc;
+
+    // 아무것도 안 바뀌었으면 종료
+    if (isSameTop && isSameBottom && isSameEtc) {
+      alert("변경 사항이 없습니다.");
+      return;
+    }
+
+    // 2. 데이터 저장
     saveOutfit(dateKey, { top, bottom, etc });
 
-    // 저장했으면 현재 상태가 새로운 초기 상태가 됨 (경고 안 뜨게)
+    // 3. 카운트 조절
+
+    // [상의] 처리
+    if (!isSameTop) {
+      if (initialState.top?.id) {
+        decrementWearCount(initialState.top.id);
+      }
+      if (top?.id) {
+        incrementWearCount(top.id);
+      }
+    }
+
+    // [하의] 처리
+    if (!isSameBottom) {
+      if (initialState.bottom?.id) {
+        decrementWearCount(initialState.bottom.id);
+      }
+      if (bottom?.id) {
+        incrementWearCount(bottom.id);
+      }
+    }
+
     setInitialState({ top, bottom, etc });
 
     alert("저장 되었습니다!");
@@ -68,9 +110,15 @@ const TodayOutfitPage = () => {
   // 3. 삭제 버튼 핸들러
   const handleDelete = () => {
     if (window.confirm("정말 삭제하시겠습니까?")) {
+      if (initialState.top && initialState.top.id) {
+        decrementWearCount(initialState.top.id);
+      }
+      if (initialState.bottom && initialState.bottom.id) {
+        decrementWearCount(initialState.bottom.id);
+      }
+
       saveOutfit(dateKey, { top: "", bottom: "", etc: "" }); // 저장소 삭제
 
-      // 입력창 및 초기 상태 리셋
       setTop("");
       setBottom("");
       setEtc("");
@@ -80,13 +128,12 @@ const TodayOutfitPage = () => {
     }
   };
 
-  // 🔥 [추가됨] 뒤로가기 버튼 핸들러 (변경사항 체크)
+  // 뒤로가기 버튼 핸들러 (변경사항 체크)
   const handleBack = () => {
-    // 현재 입력값과 초기값을 비교
     const isChanged =
-      top !== initialState.top ||
-      bottom !== initialState.bottom ||
-      etc !== initialState.etc;
+      top?.id !== initialState.top?.id || // 상의 ID 비교
+      bottom?.id !== initialState.bottom?.id || // 하의 ID 비교
+      etc !== initialState.etc; // 메모(문자열) 비교
 
     if (isChanged) {
       if (
@@ -101,6 +148,66 @@ const TodayOutfitPage = () => {
   };
 
   const hasData = top || bottom || etc;
+
+  // 모달 열기 함수
+  const openSelectionModal = (targetType) => {
+    setModalTarget(targetType);
+    setIsModalOpen(true);
+  };
+
+  // 모달에서 옷 선택 완료 시 실행되는 함수
+  const handleSelectConfirm = (selectedItem) => {
+    if (modalTarget === "top") {
+      setTop(selectedItem);
+    } else {
+      setBottom(selectedItem);
+    }
+  };
+
+  // 박스 안에 이미지, 글자 보여주는 헬퍼 함수
+  const renderContent = (data, placeholder) => {
+    if (!data) return placeholder;
+    if (typeof data === "object") {
+      return (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              marginTop: "18px",
+              width: "120px",
+              height: "150px",
+              background: "#f4f4f4",
+              borderRadius: "8px",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #e0e0e0",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+              marginBottom: "10px",
+            }}
+          >
+            {data.image ? (
+              <PreviewImg src={data.image} alt="selected" />
+            ) : (
+              <span style={{ color: "#aaa", fontSize: "14px" }}>
+                이미지 없음
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: "14px", marginTop: "5px" }}>{data.name}</div>
+        </div>
+      );
+    }
+    return data;
+  };
 
   return (
     <main>
@@ -117,16 +224,16 @@ const TodayOutfitPage = () => {
           <div style={{ flex: 1 }}>
             <FieldLabel>
               상의
-              <SelectBox onClick={() => navigate("/closet?type=top")}>
-                {top || "옷장에서 상의 선택"}
+              <SelectBox onClick={() => openSelectionModal("top")}>
+                {renderContent(top, "옷장에서 상의 선택")}
               </SelectBox>
             </FieldLabel>
           </div>
           <div style={{ flex: 1 }}>
             <FieldLabel>
               하의
-              <SelectBox onClick={() => navigate("/closet?type=bottom")}>
-                {bottom || "옷장에서 하의 선택"}
+              <SelectBox onClick={() => openSelectionModal("bottom")}>
+                {renderContent(bottom, "옷장에서 하의 선택")}
               </SelectBox>
             </FieldLabel>
           </div>
@@ -148,6 +255,13 @@ const TodayOutfitPage = () => {
 
           <SaveButton type="submit">저장</SaveButton>
         </ButtonContainer>
+
+        <SelectionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          target={modalTarget}
+          onConfirm={handleSelectConfirm}
+        />
       </form>
     </main>
   );
@@ -277,4 +391,10 @@ const SelectBox = styled.div`
     background: #f7f3ec;
     border-color: #bfa68c;
   }
+`;
+
+const PreviewImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 `;

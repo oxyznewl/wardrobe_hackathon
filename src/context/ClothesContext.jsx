@@ -5,32 +5,42 @@ export const ClothesContext = createContext();
 
 // 2. Provider 컴포넌트
 export const ClothesProvider = ({ children }) => {
-  const [clothes, setClothes] = useState([
-    {
-      id: 1,
-      name: "흰색 티셔츠",
-      category: "top",
-      seasons: ["봄", "여름"],
-      wearCount: 3,
-      image: "",
-    },
-    {
-      id: 2,
-      name: "검정 긴바지",
-      category: "bottom",
-      seasons: ["가을", "겨울"],
-      wearCount: 7,
-      image: "",
-    },
-    {
-      id: 3,
-      name: "린넨 셔츠",
-      category: "top",
-      seasons: ["여름"],
-      wearCount: 1,
-      image: "",
-    },
-  ]);
+  const [clothes, setClothes] = useState(() => {
+    const savedClothes = localStorage.getItem("myClothesData");
+    // 저장된 게 있으면 그거 쓰고, 없으면 기본 샘플 데이터 사용
+    return savedClothes
+      ? JSON.parse(savedClothes)
+      : [
+          {
+            id: 1,
+            name: "흰색 티셔츠",
+            category: "top",
+            seasons: ["봄", "여름"],
+            wearCount: 3,
+            image: "",
+          },
+          {
+            id: 2,
+            name: "검정 긴바지",
+            category: "bottom",
+            seasons: ["가을", "겨울"],
+            wearCount: 7,
+            image: "",
+          },
+          {
+            id: 3,
+            name: "린넨 셔츠",
+            category: "top",
+            seasons: ["여름"],
+            wearCount: 1,
+            image: "",
+          },
+        ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("myClothesData", JSON.stringify(clothes));
+  }, [clothes]);
 
   // 3. 새 옷 추가
   const addClothes = (newCloth) => {
@@ -48,10 +58,27 @@ export const ClothesProvider = ({ children }) => {
 
   // 5. 착용횟수 증가
   const incrementWearCount = (id) => {
-    setClothes(
-      clothes.map((c) =>
-        c.id === id ? { ...c, wearCount: c.wearCount + 1 } : c
-      )
+    setClothes((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, wearCount: c.wearCount + 1 } : c))
+    );
+  };
+
+  // 6. 착용횟수 감소 (여기가 핵심!)
+  const decrementWearCount = (id) => {
+    setClothes((prev) =>
+      prev.map((c) => {
+        // ID가 같은지 확인 (숫자/문자 타입 안전하게 비교)
+        if (Number(c.id) === Number(id)) {
+          console.log(
+            `[감소 적용] ${c.name}: ${c.wearCount} -> ${Math.max(
+              0,
+              c.wearCount - 1
+            )}`
+          );
+          return { ...c, wearCount: Math.max(0, c.wearCount - 1) };
+        }
+        return c;
+      })
     );
   };
 
@@ -62,6 +89,7 @@ export const ClothesProvider = ({ children }) => {
         addClothes,
         removeClothes,
         incrementWearCount,
+        decrementWearCount,
       }}
     >
       {children}

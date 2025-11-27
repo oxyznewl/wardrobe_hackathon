@@ -2,7 +2,12 @@ import { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
-const ClosetFilters = ({ onSeasonChange, onCategoryChange, onSortChange }) => {
+const ClosetFilters = ({
+  onSeasonChange,
+  onCategoryChange,
+  onSortChange,
+  hideCategory,
+}) => {
   const navigate = useNavigate();
 
   const [selectedSeasons, setSelectedSeasons] = useState([]);
@@ -63,13 +68,15 @@ const ClosetFilters = ({ onSeasonChange, onCategoryChange, onSortChange }) => {
 
       <Option>
         {/* 카테고리 */}
-        <Select value={category} onChange={handleCategory}>
-          {CATEGORIES.map((cat) => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
-        </Select>
+        {!hideCategory && (
+          <Select value={category} onChange={handleCategory}>
+            {CATEGORIES.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </Select>
+        )}
 
         {/* 정렬 */}
         <Select value={sort} onChange={handleSort}>

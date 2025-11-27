@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useContext } from "react";
 import { ClothesContext } from "../context/ClothesContext";
 
-const ClothesList = ({ seasons, category, sort }) => {
+const ClothesList = ({ seasons, category, sort, onItemClick }) => {
   const { clothes } = useContext(ClothesContext);
 
   // 필터링
@@ -41,7 +41,12 @@ const ClothesList = ({ seasons, category, sort }) => {
   return (
     <Grid>
       {filtered.map((item) => (
-        <ClothesCard id={item.id} item={item.name} image={item.image} />
+        <ClothesCard
+          id={item.id}
+          item={item.name}
+          image={item.image}
+          onClick={onItemClick ? () => onItemClick(item) : undefined}
+        />
       ))}
     </Grid>
   );

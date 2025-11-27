@@ -29,7 +29,7 @@ const ClosetPage = () => {
           <TooltipWrapper>
             <TooltipButton>?</TooltipButton>
             <TooltipBox>
-              종류와 정렬에 따라 옷장을 확인할 수 있습니다.
+              종류와 정렬에 따라 옷장을 확인하고, 새 옷을 등록할 수 있습니다.
             </TooltipBox>
           </TooltipWrapper>
           <InsertButton onClick={() => navigate("/insert")}>
@@ -83,6 +83,7 @@ const InsertButton = styled.button`
   cursor: pointer;
   transition: background 0.2s ease;
   margin-top: 6px;
+  margin-left: 12px;
 
   &:hover {
     background: #8c633d;

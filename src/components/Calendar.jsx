@@ -85,7 +85,10 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
               const key = getDateKey(d);
 
               const outfitData = outfits ? outfits[key] : null;
-              const hasOutfit = outfits && !!outfits[key];
+              const hasOutfit =
+                outfitData &&
+                ((outfitData.top && outfitData.top !== "") ||
+                  (outfitData.bottom && outfitData.bottom !== ""));
               const memo = outfitData ? outfitData.etc : "";
 
               const isToday = key === todayKey;
@@ -120,11 +123,24 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                       fontWeight: 600,
                       marginBottom: "4px",
                       display: "flex",
-                      justifyContent: "space-between",
+                      justifyContent: "flex-start",
                       alignItems: "center",
+                      gap: "5px",
                     }}
                   >
                     {d}
+
+                    {hasOutfit && (
+                      <div
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          background: "#6d4a2a",
+                          borderRadius: "50%",
+                          marginTop: "2px",
+                        }}
+                      />
+                    )}
                   </div>
 
                   {memo && (
