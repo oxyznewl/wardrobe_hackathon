@@ -120,7 +120,7 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                       fontWeight: 600,
                       marginBottom: "4px",
                       display: "flex",
-                      justifyContent: "space-between", // 날짜와 점을 양옆으로
+                      justifyContent: "space-between",
                       alignItems: "center",
                     }}
                   >
@@ -131,17 +131,16 @@ const Calendar = ({ year, month, onClickDate, outfits }) => {
                     <div
                       style={{
                         fontSize: "11px",
-                        color: "#666",
+                        color: "#4a3b2f",
                         marginTop: "4px",
-                        background: "rgba(255, 255, 255, 0.6)",
-                        borderRadius: "4px",
-                        padding: "2px 4px",
+                        background: "#f4efe9",
+                        borderRadius: "5px",
+                        padding: "2px 6px",
 
-                        // 👇 말줄임표(...) 핵심 스타일
-                        whiteSpace: "nowrap", // 줄바꿈 금지
-                        overflow: "hidden", // 넘치는 텍스트 숨김
-                        textOverflow: "ellipsis", // 넘치면 ... 표시
-                        maxWidth: "100%", // 셀 너비를 넘지 않도록
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        maxWidth: "100%",
                         display: "block",
                       }}
                     >
