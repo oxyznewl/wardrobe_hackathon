@@ -2,16 +2,23 @@ import styled from "styled-components";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import { useContext } from "react";
+import { ClothesContext } from "../context/ClothesContext";
 
 const DetailPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const id = searchParams.get("id");
+  const id = Number(searchParams.get("id"));
+
+  const { clothes, removeClothes } = useContext(ClothesContext);
+
+  const item = clothes.find((c) => c.id === id);
 
   const handleDeleteClick = () => {
     const ok = window.confirm("정말로 삭제하시겠습니까?");
     if (ok) {
       // 삭제 로직 실행
+      removeClothes(id);
       navigate("/closet");
     }
   };
@@ -20,18 +27,30 @@ const DetailPage = () => {
     navigate(-1); //스택에서 pop (=이전 페이지로 이동)
   };
 
-  //TODO: id에 해당하는 옷 정보 받아오기 (DB연동?)
-  //TODO: 옷 삭제 구현 후 DB업데이트?
-  //TODO: 삭제 로직 실행 후 목록 페이지로 이동
+  if (!item) {
+    return <p>해당 옷을 찾을 수 없습니다.</p>;
+  }
+
+  const CATEGORIES = [
+    { value: "top", label: "상의" },
+    { value: "bottom", label: "하의" },
+  ];
+
+  const getCategoryLabel = (value) => {
+    const found = CATEGORIES.find((c) => c.value === value);
+    return found ? found.label : value;
+  };
 
   return (
     <div>
       <h2>상세 페이지</h2>
-      <ClothesImage>옷 사진</ClothesImage>
-      <Name>이름</Name>
-      <Script>카테고리</Script>
-      <Script>계절</Script>
-      <Script>총 N번 입었어요!</Script>
+      <ImagePreview>
+        <Img src={item.image} alt={item.name} />
+      </ImagePreview>
+      <Name>{item.name}</Name>
+      <Script>{getCategoryLabel(item.category)}</Script>
+      <Script>{item.seasons.join(", ")} 옷</Script>
+      <Script>총 {item.wearCount}번 입었어요!</Script>
       <Buttons>
         <DeleteButton onClick={handleDeleteClick}>옷 삭제하기</DeleteButton>
         <BackButton onClick={handleBackClick}>뒤로가기</BackButton>
@@ -42,7 +61,26 @@ const DetailPage = () => {
 
 export default DetailPage;
 
-const ClothesImage = styled.div``; //div > img로 바꾸기
+const ClothesImage = styled.div``;
+
+const ImagePreview = styled.div`
+  width: 300px;
+  height: 400px;
+  border: 2px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  justify-self: center;
+  align-items: center;
+  font-size: 18px;
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const Img = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
 
 const Name = styled.h3``;
 

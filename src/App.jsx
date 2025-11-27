@@ -8,6 +8,7 @@ import StatsPage from "./pages/StatsPage";
 import ClosetPage from "./pages/ClosetPage";
 import InsertPage from "./pages/InsertPage";
 import DetailPage from "./pages/DetailPage";
+import { ClothesProvider } from "./context/ClothesContext";
 
 function App() {
   const [outfitsByDate, setOutfitsByDate] = useState({});
@@ -28,27 +29,28 @@ function App() {
         <Link to="/stats">옷 통계</Link>
         <Link to="/closet">옷장</Link>
       </header>*/}
-
-      <Routes>
-        <Route path="/" element={<IntroPage />} />
-        <Route
-          path="/calendar"
-          element={
-            <CalendarPage
-              outfitsByDate={outfitsByDate}
-              onSaveOutfit={saveOutfit}
-            />
-          }
-        />
-        <Route
-          path="/today"
-          element={<TodayOutfitPage onSaveOutfit={saveOutfit} />}
-        />
-        <Route path="/stats" element={<StatsPage />} />
-        <Route path="/closet" element={<ClosetPage />} />
-        <Route path="/insert" element={<InsertPage />} />
-        <Route path="/detail" element={<DetailPage />} />
-      </Routes>
+      <ClothesProvider>
+        <Routes>
+          <Route path="/" element={<IntroPage />} />
+          <Route
+            path="/calendar"
+            element={
+              <CalendarPage
+                outfitsByDate={outfitsByDate}
+                onSaveOutfit={saveOutfit}
+              />
+            }
+          />
+          <Route
+            path="/today"
+            element={<TodayOutfitPage onSaveOutfit={saveOutfit} />}
+          />
+          <Route path="/stats" element={<StatsPage />} />
+          <Route path="/closet" element={<ClosetPage />} />
+          <Route path="/insert" element={<InsertPage />} />
+          <Route path="/detail" element={<DetailPage />} />
+        </Routes>
+      </ClothesProvider>
     </div>
   );
 }

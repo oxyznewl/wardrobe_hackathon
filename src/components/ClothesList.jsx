@@ -1,38 +1,14 @@
 import ClothesCard from "./ClothesCard";
 import styled from "styled-components";
 import { useEffect, useState } from "react";
+import { useContext } from "react";
+import { ClothesContext } from "../context/ClothesContext";
 
 const ClothesList = ({ seasons, category, sort }) => {
-  const tempClothes = [
-    //임시 data
-    {
-      id: 1,
-      name: "흰색 티셔츠",
-      category: "top",
-      seasons: ["봄", "여름"],
-      wearCount: 3,
-      image: "",
-    },
-    {
-      id: 2,
-      name: "검정 긴바지",
-      category: "bottom",
-      seasons: ["가을", "겨울"],
-      wearCount: 7,
-      image: "",
-    },
-    {
-      id: 3,
-      name: "린넨 셔츠",
-      category: "top",
-      seasons: ["여름"],
-      wearCount: 1,
-      image: "",
-    },
-  ];
+  const { clothes } = useContext(ClothesContext);
 
   // 필터링
-  const filtered = tempClothes
+  const filtered = clothes
     .filter((item) => {
       // 카테고리 필터
       if (category !== "all" && item.category !== category) return false;

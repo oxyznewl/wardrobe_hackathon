@@ -1,8 +1,11 @@
 import styled from "styled-components";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { ClothesContext } from "../context/ClothesContext";
 
 const InsertPage = () => {
+  const { addClothes } = useContext(ClothesContext);
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [category, setCategory] = useState("");
@@ -54,12 +57,17 @@ const InsertPage = () => {
     }
 
     //등록 로직 실행
+    addClothes({
+      name,
+      category: category === "상의" ? "top" : "bottom",
+      seasons: selectedSeasons,
+      wearCount: 0,
+      image: image.preview,
+    });
 
     alert("등록 되었습니다.");
     navigate("/closet");
   };
-
-  //TODO: 입력받은 이미지, 이름, 카테고리, 계절 정보 저장해서 새 옷 등록 기능 구현(DB연동하기)
 
   return (
     <InputBox>

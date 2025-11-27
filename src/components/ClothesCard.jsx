@@ -8,12 +8,12 @@ const ClothesCard = ({ id, item, image }) => {
     navigate(`/detail?id=${id}`);
   };
 
-  //TODO: 이미지 표시하기
-  //TODO: 디자인 보충하기
-
   return (
     <Div onClick={handleCardClick}>
-      <p>{item}</p>
+      <Title>{item}</Title>
+      <ImagePreview>
+        <Img src={image} />
+      </ImagePreview>
     </Div>
   );
 };
@@ -23,10 +23,40 @@ export default ClothesCard;
 const Div = styled.div`
   width: 150px;
   height: 200px;
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 5px;
-  text-align: center;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-  margin: 10px;
+
+  padding: 15px;
+  font-size: 15px;
+  background: #fffdf8;
+  border-radius: 14px;
+  border: 1px solid #e5d8c7;
+  cursor: pointer;
+  transition: 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+
+  &:hover {
+    background: #f8f1e6;
+    transform: translateY(-4px);
+  }
+`;
+
+const Title = styled.div``;
+
+const ImagePreview = styled.div`
+  margin-top: 10px;
+  width: 120px;
+  height: 160px;
+  border: 2px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  justify-self: center;
+  align-items: center;
+  font-size: 18px;
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const Img = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 `;
