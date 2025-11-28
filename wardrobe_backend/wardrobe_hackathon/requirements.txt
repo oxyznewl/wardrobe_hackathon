@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-pydantic
-databases       # optional helper (not required), but okay
-python-dateutil
-requests         # for test script
