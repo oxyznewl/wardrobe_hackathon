@@ -1,6 +1,5 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { useNavigate } from "react-router-dom";
 
 const ClosetFilters = ({
   onSeasonChange,
@@ -8,8 +7,6 @@ const ClosetFilters = ({
   onSortChange,
   hideCategory,
 }) => {
-  const navigate = useNavigate();
-
   const [selectedSeasons, setSelectedSeasons] = useState([]);
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("");
@@ -40,7 +37,6 @@ const ClosetFilters = ({
   };
 
   const handleCategory = (e) => {
-    navigate(`/closet?type=${e.target.value}`);
     setCategory(e.target.value);
     onCategoryChange(e.target.value);
   };

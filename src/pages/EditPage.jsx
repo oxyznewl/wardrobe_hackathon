@@ -1,34 +1,36 @@
 import styled from "styled-components";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useState, useContext } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ClothesContext } from "../context/ClothesContext";
 
-const InsertPage = () => {
-  const { addClothes } = useContext(ClothesContext);
-  const [name, setName] = useState("");
-  const [image, setImage] = useState(null);
-  const [category, setCategory] = useState("");
-  const [selectedSeasons, setSelectedSeasons] = useState([]);
-
-  const CATEGORIES = ["카테고리 선택", "상의", "하의"];
-  const SEASONS = ["봄", "여름", "가을", "겨울"];
-
-  const handleCategory = (e) => {
-    setCategory(e.target.value);
-  };
-
-  const toggleSeason = (season) => {
-    let updated;
-    if (selectedSeasons.includes(season)) {
-      updated = selectedSeasons.filter((s) => s !== season);
-    } else {
-      updated = [...selectedSeasons, season];
-    }
-    setSelectedSeasons(updated);
-  };
-
+const EditPage = () => {
   const navigate = useNavigate();
+  const { clothes, updateClothes } = useContext(ClothesContext);
+
+  const [searchParams] = useSearchParams();
+  const id = Number(searchParams.get("id"));
+
+  // 수정 대상 아이템 찾기
+  const item = clothes.find((c) => c.id === id);
+
+  // 초기 값 세팅
+  const [name, setName] = useState(item.name);
+  const [category, setCategory] = useState(item.category);
+  const [selectedSeasons, setSelectedSeasons] = useState(item.seasons);
+  const [image, setImage] = useState(
+    item.image
+      ? typeof item.image === "string"
+        ? { file: null, preview: item.image } // base64 문자열이면 preview로만 사용
+        : { file: item.image, preview: URL.createObjectURL(item.image) }
+      : null
+  );
+
+  const CATEGORIES = [
+    { label: "카테고리 선택", value: "" },
+    { label: "상의", value: "top" },
+    { label: "하의", value: "bottom" },
+  ];
+  const SEASONS = ["봄", "여름", "가을", "겨울"];
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -38,77 +40,65 @@ const InsertPage = () => {
     setImage({ file, preview });
   };
 
-  // 취소 버튼 핸들러
-  const handleCancelClick = () => {
-    if (
-      window.confirm(
-        "옷 등록을 취소하시겠습니까?\n입력한 내용은 저장되지 않습니다."
-      )
-    ) {
-      navigate(-1);
-    }
+  const toggleSeason = (season) => {
+    setSelectedSeasons((prev) =>
+      prev.includes(season)
+        ? prev.filter((s) => s !== season)
+        : [...prev, season]
+    );
   };
 
-  const handleSubmitClick = () => {
-    if (!image) {
-      alert("이미지를 등록해주세요.");
-      return;
-    }
-    if (name === "") {
-      alert("이름을 입력해주세요.");
-      return;
-    }
-    if (category === "" || category === "카테고리 선택") {
-      alert("카테고리를 선택해주세요.");
-      return;
-    }
-    if (selectedSeasons.length === 0) {
-      alert("계절을 하나 이상 선택해주세요.");
-      return;
-    }
+  const handleCancel = () => {
+    if (window.confirm("수정을 취소하시겠습니까?")) navigate(-1);
+  };
 
-    //등록 로직 실행
-    addClothes({
+  const handleSubmit = () => {
+    if (!name) return alert("이름을 입력해주세요.");
+    if (!category || category === "카테고리 선택")
+      return alert("카테고리를 선택해주세요.");
+    if (selectedSeasons.length === 0)
+      return alert("계절을 하나 이상 선택해주세요.");
+
+    updateClothes(id, {
       name,
-      category: category === "상의" ? "top" : "bottom",
+      category,
       seasons: selectedSeasons,
-      wearCount: 0,
-      image: image.file,
+      image: image?.file ?? item.image,
     });
 
-    alert("등록 되었습니다.");
+    alert("수정되었습니다.");
     navigate("/closet");
   };
 
   return (
     <InputBox>
-      <h2>새 옷 등록하기</h2>
+      <h2>옷 정보 수정하기</h2>
+
       <ImageInputWrapper>
-        <label htmlFor="input_file">
+        <label htmlFor="edit_file">
           <ImagePreview>
             {image ? <Img src={image.preview} /> : "이미지 업로드"}
           </ImagePreview>
         </label>
         <ImageInput
           type="file"
-          id="input_file"
+          id="edit_file"
           accept="image/*"
           onChange={handleImageChange}
         />
       </ImageInputWrapper>
-      <Name
-        placeholder="이름"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      ></Name>
-      <Select value={category} onChange={handleCategory}>
-        {CATEGORIES.map((cat) => (
-          <option key={cat} value={cat}>
-            {cat}
+
+      <Name value={name} onChange={(e) => setName(e.target.value)} />
+
+      <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+        {CATEGORIES.map((c) => (
+          <option key={c.value} value={c.value}>
+            {c.label}
           </option>
         ))}
       </Select>
-      <Option className="season-checkboxes">
+
+      <Option>
         {SEASONS.map((season) => (
           <label key={season}>
             <input
@@ -122,13 +112,14 @@ const InsertPage = () => {
       </Option>
 
       <ButtonContainer>
-        <CancelButton onClick={handleCancelClick}>취소</CancelButton>
-        <InsertButton onClick={handleSubmitClick}>등록</InsertButton>
+        <CancelButton onClick={handleCancel}>취소</CancelButton>
+        <InsertButton onClick={handleSubmit}>수정</InsertButton>
       </ButtonContainer>
     </InputBox>
   );
 };
-export default InsertPage;
+
+export default EditPage;
 
 const InputBox = styled.div`
   display: flex;

@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { useContext } from "react";
@@ -27,6 +26,10 @@ const DetailPage = () => {
     navigate(-1); //스택에서 pop (=이전 페이지로 이동)
   };
 
+  const handleEditClick = () => {
+    navigate(`/edit?id=${id}`); //스택에서 pop (=이전 페이지로 이동)
+  };
+
   if (!item) {
     return <p>해당 옷을 찾을 수 없습니다.</p>;
   }
@@ -48,12 +51,15 @@ const DetailPage = () => {
         <Img src={item.image} alt={item.name} />
       </ImagePreview>
       <Name>{item.name}</Name>
-      <Script>{getCategoryLabel(item.category)}</Script>
-      <Script>{item.seasons.join(", ")} 옷</Script>
-      <Script>총 {item.wearCount}번 입었어요!</Script>
+      <TagContainer>
+        <Tag>{getCategoryLabel(item.category)}</Tag>
+        <Tag>{item.seasons.join(", ")}</Tag>
+      </TagContainer>
+      <Script>총 {item.wearCount}번 입었어요</Script>
       <Buttons>
         <DeleteButton onClick={handleDeleteClick}>옷 삭제하기</DeleteButton>
         <BackButton onClick={handleBackClick}>뒤로가기</BackButton>
+        <EditButton onClick={handleEditClick}>정보 수정하기</EditButton>
       </Buttons>
     </div>
   );
@@ -66,7 +72,7 @@ const ClothesImage = styled.div``;
 const ImagePreview = styled.div`
   width: 300px;
   height: 400px;
-  border: 2px dashed #ccc;
+  border: 2px solid #ccc;
   display: flex;
   justify-content: center;
   justify-self: center;
@@ -84,7 +90,25 @@ const Img = styled.img`
 
 const Name = styled.h3``;
 
-const Script = styled.p``;
+const TagContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+`;
+
+const Tag = styled.span`
+  background: #e0d4c6;
+  color: #5a4a3a;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const Script = styled.p`
+  color: #666;
+`;
 
 const Buttons = styled.div`
   display: flex;
@@ -119,5 +143,20 @@ const BackButton = styled.button`
 
   &:hover {
     background: #8c633d;
+  }
+`;
+
+const EditButton = styled.button`
+  padding: 8px 18px;
+  color: #6d4a2a;
+  background: #ffffff;
+  border: 1px solid #6d4a2a;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 6px;
+
+  &:hover {
+    background: #e0e0e0;
   }
 `;

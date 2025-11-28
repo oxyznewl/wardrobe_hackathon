@@ -8,6 +8,7 @@ import StatsPage from "./pages/StatsPage";
 import ClosetPage from "./pages/ClosetPage";
 import InsertPage from "./pages/InsertPage";
 import DetailPage from "./pages/DetailPage";
+import EditPage from "./pages/EditPage";
 import { ClothesProvider } from "./context/ClothesContext";
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/closet" element={<ClosetPage />} />
           <Route path="/insert" element={<InsertPage />} />
           <Route path="/detail" element={<DetailPage />} />
+          <Route path="/edit" element={<EditPage />} />
         </Routes>
       </ClothesProvider>
     </div>

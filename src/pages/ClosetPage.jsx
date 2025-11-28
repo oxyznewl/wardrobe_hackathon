@@ -2,24 +2,15 @@ import styled from "styled-components";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClosetFilters from "../components/ClosetFilters";
-import { useSearchParams } from "react-router-dom";
 import ClothesList from "../components/ClothesList";
-import { useEffect } from "react";
 
 const ClosetPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (!searchParams.get("type")) {
-      navigate("/closet?type=all", { replace: true });
-    }
-  });
 
   //ClosetFilters, ClothesList에 props로 전달할 값들
   const [selectedSeasons, setSelectedSeasons] = useState([]); //선택된 계절(들)
   const [sort, setSort] = useState("newest"); // 선택된 정렬기준
-  const category = searchParams.get("type"); //선택된 카테고리
+  const [category, setCategory] = useState("all"); //선택된 카테고리
 
   return (
     <main>
@@ -43,6 +34,8 @@ const ClosetPage = () => {
             onSeasonChange={setSelectedSeasons}
             sort={sort}
             onSortChange={setSort}
+            category={category}
+            onCategoryChange={setCategory}
           ></ClosetFilters>
         </h5>
         <IntroButton onClick={() => navigate("/")}>HOME →</IntroButton>

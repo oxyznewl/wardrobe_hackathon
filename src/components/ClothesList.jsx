@@ -1,6 +1,5 @@
 import ClothesCard from "./ClothesCard";
 import styled from "styled-components";
-import { useEffect, useState } from "react";
 import { useContext } from "react";
 import { ClothesContext } from "../context/ClothesContext";
 

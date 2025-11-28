@@ -43,12 +43,57 @@ export const ClothesProvider = ({ children }) => {
   }, [clothes]);
 
   // 3. 새 옷 추가
-  const addClothes = (newCloth) => {
+  const addClothes = async (newCloth) => {
+    //이미지
+    let base64Image = "";
+    // 이미지가 File 객체일 때만 변환
+    if (newCloth.image instanceof File) {
+      base64Image = await convertFileToBase64(newCloth.image);
+    } else {
+      base64Image = newCloth.image; // 이미 base64면 그대로
+    }
+
     // id 자동 생성: 현재 가장 큰 id + 1
     const newId =
       clothes.length > 0 ? Math.max(...clothes.map((c) => c.id)) + 1 : 1;
 
-    setClothes([...clothes, { id: newId, wearCount: 0, ...newCloth }]);
+    setClothes([
+      ...clothes,
+      {
+        id: newId,
+        wearCount: 0,
+        ...newCloth,
+        image: base64Image, // 최종 저장은 base64로
+      },
+    ]);
+  };
+
+  //수정 기능 추가
+  const updateClothes = async (id, updatedData) => {
+    let base64Image = "";
+
+    // 이미지 변환
+    if (updatedData.image instanceof File) {
+      base64Image = await convertFileToBase64(updatedData.image);
+    } else {
+      base64Image = updatedData.image;
+    }
+
+    setClothes((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, ...updatedData, image: base64Image } : item
+      )
+    );
+  };
+
+  // 파일을 Base64로 변환하는 유틸 함수 추가
+  const convertFileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   // 4. 옷 삭제
@@ -88,6 +133,7 @@ export const ClothesProvider = ({ children }) => {
         clothes,
         addClothes,
         removeClothes,
+        updateClothes,
         incrementWearCount,
         decrementWearCount,
       }}
