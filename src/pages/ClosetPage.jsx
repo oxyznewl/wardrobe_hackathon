@@ -131,17 +131,18 @@ const TooltipBox = styled.div`
 `;
 
 const IntroButton = styled.button`
-  padding: 8px 14px;
-  background: #eeeeee;
-  color: #333;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
+  padding: 8px 16px;
+  background: #f4efe9;
+  color: #6d4a2a;
+  border: 1px solid #e5d8c7;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s ease;
-  margin-top: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #e0e0e0;
+    background: #e5d8c7;
+    color: #4a3b2f;
   }
 `;
