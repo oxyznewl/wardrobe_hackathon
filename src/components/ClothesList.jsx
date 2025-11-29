@@ -38,16 +38,22 @@ const ClothesList = ({ seasons, category, sort, onItemClick }) => {
     });
 
   return (
-    <Grid>
-      {filtered.map((item) => (
-        <ClothesCard
-          id={item.id}
-          item={item.name}
-          image={item.image}
-          onClick={onItemClick ? () => onItemClick(item) : undefined}
-        />
-      ))}
-    </Grid>
+    <>
+      {clothes.length === 0 ? (
+        <h3>옷이 없습니다. 옷장에 옷을 추가해보세요.</h3>
+      ) : (
+        <Grid>
+          {filtered.map((item) => (
+            <ClothesCard
+              id={item.id}
+              item={item.name}
+              image={item.image}
+              onClick={onItemClick ? () => onItemClick(item) : undefined}
+            />
+          ))}
+        </Grid>
+      )}
+    </>
   );
 };
 
