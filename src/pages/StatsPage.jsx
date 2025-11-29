@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { useState, useContext, useMemo } from "react";
+import { useState, useContext, useMemo, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -21,46 +21,57 @@ const COLORS = ["#8b6f4e", "#a89078", "#c5b19c", "#e2d2c0", "#f0e4d7"];
 const StatsPage = () => {
   const navigate = useNavigate();
 
-  // Context 데이터 가져오기 (데이터가 없으면 빈 객체/배열로 처리)
+  // Context 데이터 가져오기
   const { clothes = [] } = useContext(ClothesContext);
   const { outfits = {} } = useOutfit();
 
   const [periodTab, setPeriodTab] = useState("week");
 
+  // 시간 영향을 받지 않도록 '날짜 문자열'이나 '시간 00:00:00'으로 관리하는 것이 좋습니다.
+  // 여기서는 기존 방식대로 Date 객체를 쓰되, 시간을 초기화합니다.
+  const [currentDate, setCurrentDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+
+  useEffect(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    setCurrentDate(d);
+  }, [periodTab]);
+
   // --- 1. 기본 통계 데이터 계산 ---
   const totalItems = clothes.length;
   const totalWears = clothes.reduce(
-    (sum, item) => sum + (item.wearCount || 0),
+    (sum, item) => sum + (Number(item.wearCount) || 0),
     0
   );
   const averageWears =
     totalItems > 0 ? (totalWears / totalItems).toFixed(1) : 0;
 
-  // 전체 중 가장 많이 입은 옷 (요약 카드용)
+  // 전체 중 가장 많이 입은 옷
   const mostWornItem = [...clothes].sort(
-    (a, b) => b.wearCount - a.wearCount
+    (a, b) => (b.wearCount || 0) - (a.wearCount || 0)
   )[0];
 
-  // --- 2. 상의 / 하의 랭킹 (Top 3) 분리 로직 ---
-
-  // 상의 필터링 및 정렬
+  // --- 2. 상의 / 하의 랭킹 (Top 3) ---
   const topClothes = clothes.filter((c) => c.category === "top");
   const sortedTop = [...topClothes]
-    .sort((a, b) => b.wearCount - a.wearCount)
+    .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
     .slice(0, 3);
   const maxTopWear = sortedTop.length > 0 ? sortedTop[0].wearCount : 0;
 
-  // 하의 필터링 및 정렬
   const bottomClothes = clothes.filter((c) => c.category === "bottom");
   const sortedBottom = [...bottomClothes]
-    .sort((a, b) => b.wearCount - a.wearCount)
+    .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
     .slice(0, 3);
   const maxBottomWear = sortedBottom.length > 0 ? sortedBottom[0].wearCount : 0;
 
-  // --- 3. 카테고리 비율 계산 (파이 차트용) ---
+  // --- 3. 카테고리 비율 계산 ---
   const categoryStats = clothes.reduce((acc, item) => {
     const category = item.category === "top" ? "상의" : "하의";
-    acc[category] = (acc[category] || 0) + (item.wearCount || 0);
+    acc[category] = (acc[category] || 0) + (Number(item.wearCount) || 0);
     return acc;
   }, {});
 
@@ -68,50 +79,111 @@ const StatsPage = () => {
     ([name, value]) => ({ name, value })
   );
 
-  // --- 4. 주별/월별 통계 계산 (막대 차트용) ---
-  const groupedHistory = useMemo(() => {
-    if (!outfits) return {};
+  // 날짜 이동 핸들러
+  const movePeriod = (direction) => {
+    const newDate = new Date(currentDate);
+    if (periodTab === "week") {
+      newDate.setDate(newDate.getDate() + direction * 7);
+    } else {
+      // 월 이동 시 1일로 설정하여 월말 계산 오류 방지
+      newDate.setMonth(newDate.getMonth() + direction, 1);
+    }
+    setCurrentDate(newDate);
+  };
 
-    const groups = {};
+  // 현재 보고 있는 기간의 시작/끝 날짜 및 라벨 계산
+  const { periodLabel, startRange, endRange } = useMemo(() => {
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    const d = currentDate.getDate();
+    let s, e, label;
 
-    // 날짜를 최신순으로 정렬하여 처리
-    const sortedDates = Object.keys(outfits).sort().reverse();
+    if (periodTab === "week") {
+      const day = currentDate.getDay();
+      s = new Date(y, m, d - day); // 일요일
+      e = new Date(y, m, d + (6 - day)); // 토요일
+      s.setHours(0, 0, 0, 0);
+      e.setHours(23, 59, 59, 999);
 
-    sortedDates.forEach((dateStr) => {
-      const outfit = outfits[dateStr];
-      if (!outfit) return;
+      // 주차 계산
+      const firstDayOfMonth = new Date(s.getFullYear(), s.getMonth(), 1);
+      const weekNum = Math.ceil((s.getDate() + firstDayOfMonth.getDay()) / 7);
+      const labelMonth = s.getMonth() + 1;
 
-      // 유효한 옷이 있는지 확인
-      const items = [];
-      if (outfit.top && outfit.top.id) items.push(outfit.top);
-      if (outfit.bottom && outfit.bottom.id) items.push(outfit.bottom);
+      label = `${labelMonth}월 ${weekNum}주차 (${
+        s.getMonth() + 1
+      }.${s.getDate()} ~ ${e.getMonth() + 1}.${e.getDate()})`;
+    } else {
+      s = new Date(y, m, 1);
+      s.setHours(0, 0, 0, 0);
 
-      if (items.length === 0) return;
+      e = new Date(y, m + 1, 0); // 다음 달 0일 = 이번 달 말일
+      e.setHours(23, 59, 59, 999);
 
-      const date = new Date(dateStr);
-      let key = "";
+      label = `${y}년 ${m + 1}월`;
+    }
+    return { periodLabel: label, startRange: s, endRange: e };
+  }, [currentDate, periodTab]);
 
-      if (periodTab === "week") {
-        // 주별 키 생성 (예: 11월 4주)
-        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-        const weekNum = Math.ceil((date.getDate() + firstDay.getDay()) / 7);
-        key = `${date.getMonth() + 1}월 ${weekNum}주`;
-      } else {
-        // 월별 키 생성 (예: 11월)
-        key = `${date.getMonth() + 1}월`;
+  // --- 🔥 [핵심 수정] 해당 기간 아이템 필터링 및 카운팅 ---
+  const currentPeriodItems = useMemo(() => {
+    if (!outfits) return [];
+
+    const itemMap = {};
+
+    // outfits = { "2023-11-29": { top: {id:1, ...}, bottom: {id:2, ...} }, ... }
+    Object.keys(outfits).forEach((dateStr) => {
+      // 1. 날짜 비교를 위해 파싱 (YYYY-MM-DD)
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const checkDate = new Date(y, m - 1, d);
+      // 비교를 위해 시간 통일 (중간 시간인 12시로 설정하여 타임존 이슈 회피)
+      checkDate.setHours(12, 0, 0, 0);
+
+      // 2. 기간 내 포함 여부 확인
+      if (
+        checkDate.getTime() >= startRange.getTime() &&
+        checkDate.getTime() <= endRange.getTime()
+      ) {
+        const outfit = outfits[dateStr];
+        const items = [];
+
+        // 3. 옷 데이터 추출 (객체인지 ID인지 확인하여 처리)
+        if (outfit?.top) {
+          // 만약 top이 객체이고 id가 있다면 그대로 사용
+          if (typeof outfit.top === "object" && outfit.top.id)
+            items.push(outfit.top);
+          // 만약 top이 ID(숫자/문자)라면 clothes 배열에서 찾아서 사용
+          else {
+            const found = clothes.find((c) => c.id == outfit.top);
+            if (found) items.push(found);
+          }
+        }
+
+        if (outfit?.bottom) {
+          if (typeof outfit.bottom === "object" && outfit.bottom.id)
+            items.push(outfit.bottom);
+          else {
+            const found = clothes.find((c) => c.id == outfit.bottom);
+            if (found) items.push(found);
+          }
+        }
+
+        // 4. 카운팅
+        items.forEach((item) => {
+          if (!itemMap[item.id]) {
+            // periodCount 속성 추가하여 초기화
+            itemMap[item.id] = { ...item, periodCount: 0 };
+          }
+          itemMap[item.id].periodCount += 1;
+        });
       }
-
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      // 해당 기간 그룹에 옷 아이템들을 추가
-      groups[key].push(...items);
     });
 
-    return groups;
-  }, [outfits, periodTab]);
+    // 많이 입은 순으로 정렬
+    return Object.values(itemMap).sort((a, b) => b.periodCount - a.periodCount);
+  }, [outfits, startRange, endRange, clothes]);
 
-  // --- 화면 렌더링 헬퍼 함수 (랭킹 리스트) ---
+  // --- 렌더링 헬퍼 ---
   const renderRankingList = (items, title, maxVal) => (
     <RankingColumn>
       <SubTitle>{title}</SubTitle>
@@ -145,7 +217,6 @@ const StatsPage = () => {
     </RankingColumn>
   );
 
-  // --- 데이터가 없을 때 표시할 화면 ---
   if (!clothes || clothes.length === 0) {
     return (
       <MainContainer>
@@ -165,7 +236,6 @@ const StatsPage = () => {
 
   return (
     <MainContainer>
-      {/* 상단 헤더 */}
       <TopBar>
         <TitleArea>
           <Title>Stats</Title>
@@ -180,20 +250,20 @@ const StatsPage = () => {
       </TopBar>
 
       <ContentArea>
-        {/* 1. 요약 정보 카드 */}
+        {/* 1. 요약 정보 */}
         <SummarySection>
           <SummaryCard>
             <SummaryLabel>총 보유 옷</SummaryLabel>
             <SummaryValue>{totalItems}벌</SummaryValue>
           </SummaryCard>
-          <SummaryCard>
+          {/* <SummaryCard>
             <SummaryLabel>총 착용 횟수</SummaryLabel>
             <SummaryValue>{totalWears}회</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>평균 착용 횟수</SummaryLabel>
             <SummaryValue>{averageWears}회</SummaryValue>
-          </SummaryCard>
+          </SummaryCard> */}
           <SummaryCard highlight>
             <SummaryLabel>최애 아이템</SummaryLabel>
             <SummaryValue className="highlight">
@@ -209,10 +279,26 @@ const StatsPage = () => {
           </SummaryCard>
         </SummarySection>
 
-        {/* 2. 주별/월별 통계 차트 */}
+        {/* 2. 기간별 착용 기록 */}
         <SectionCard>
           <HeaderRow>
             <SectionTitle>📅 기간별 착용 기록</SectionTitle>
+          </HeaderRow>
+
+          <PeriodNav>
+            <NavButton onClick={() => movePeriod(-1)}>◀</NavButton>
+            <PeriodLabel>{periodLabel}</PeriodLabel>
+            <NavButton onClick={() => movePeriod(1)}>▶</NavButton>
+          </PeriodNav>
+
+          {/* 탭 버튼 위치 조정 */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "20px",
+            }}
+          >
             <TabContainer>
               <TabButton
                 active={periodTab === "week"}
@@ -227,32 +313,29 @@ const StatsPage = () => {
                 월별
               </TabButton>
             </TabContainer>
-          </HeaderRow>
+          </div>
 
           <HistoryContainer>
-            {Object.keys(groupedHistory).length > 0 ? (
-              Object.entries(groupedHistory).map(([period, items]) => (
-                <HistoryGroup key={period}>
-                  <GroupLabel>{period}</GroupLabel>
-                  <GroupGrid>
-                    {items.map((item, index) => (
-                      <HistoryItem key={`${period}-${index}`}>
-                        <HistoryImgWrapper>
-                          {item.image ? (
-                            <HistoryImg src={item.image} alt={item.name} />
-                          ) : (
-                            <NoImgText>No Img</NoImgText>
-                          )}
-                        </HistoryImgWrapper>
-                        <HistoryItemName>{item.name}</HistoryItemName>
-                      </HistoryItem>
-                    ))}
-                  </GroupGrid>
-                </HistoryGroup>
-              ))
+            {currentPeriodItems.length > 0 ? (
+              <GroupGrid>
+                {currentPeriodItems.map((item) => (
+                  <HistoryItem key={item.id}>
+                    <HistoryImgWrapper>
+                      {/* 횟수 뱃지 */}
+                      <CountBadge>{item.periodCount}회</CountBadge>
+                      {item.image ? (
+                        <HistoryImg src={item.image} alt={item.name} />
+                      ) : (
+                        <NoImgText>No Img</NoImgText>
+                      )}
+                    </HistoryImgWrapper>
+                    <HistoryItemName>{item.name}</HistoryItemName>
+                  </HistoryItem>
+                ))}
+              </GroupGrid>
             ) : (
-              <EmptyChartMessage>
-                해당 기간의 기록이 없습니다.
+              <EmptyChartMessage style={{ height: "150px" }}>
+                이 기간에는 옷을 입은 기록이 없어요.
               </EmptyChartMessage>
             )}
           </HistoryContainer>
@@ -320,36 +403,31 @@ const StatsPage = () => {
 
 export default StatsPage;
 
-// --- 스타일 컴포넌트 ---
+// --- 스타일 컴포넌트 (기존과 동일) ---
 const MainContainer = styled.main`
   padding-bottom: 40px;
 `;
-
 const TopBar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
 `;
-
 const TitleArea = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
 `;
-
 const Title = styled.h2`
   font-size: 28px;
   font-weight: 700;
   color: #3c2a1b;
   margin: 0;
 `;
-
 const TooltipWrapper = styled.div`
   position: relative;
   display: inline-block;
 `;
-
 const TooltipButton = styled.button`
   width: 20px;
   height: 20px;
@@ -363,12 +441,10 @@ const TooltipButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-
   &:hover {
     background: #d4c4b0;
   }
 `;
-
 const TooltipBox = styled.div`
   display: none;
   position: absolute;
@@ -384,12 +460,10 @@ const TooltipBox = styled.div`
   color: #4a3b2f;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
-
   ${TooltipWrapper}:hover & {
     display: block;
   }
 `;
-
 const IntroButton = styled.button`
   padding: 8px 16px;
   background: #f4efe9;
@@ -400,25 +474,21 @@ const IntroButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s ease;
-
   &:hover {
     background: #e5d8c7;
     color: #4a3b2f;
   }
 `;
-
 const ContentArea = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
 `;
-
 const SummarySection = styled.section`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
 `;
-
 const SummaryCard = styled.div`
   background: ${(props) => (props.highlight ? "#fff6e6" : "#ffffff")};
   border: 1px solid ${(props) => (props.highlight ? "#eddabf" : "#eaeaea")};
@@ -431,14 +501,12 @@ const SummaryCard = styled.div`
   justify-content: center;
   min-height: 110px;
 `;
-
 const SummaryLabel = styled.div`
   font-size: 14px;
   color: #888;
   margin-bottom: 8px;
   font-weight: 500;
 `;
-
 const SummaryValue = styled.div`
   font-size: 22px;
   font-weight: 700;
@@ -448,20 +516,17 @@ const SummaryValue = styled.div`
     font-size: 24px;
   }
 `;
-
 const SummarySubValue = styled.div`
   font-size: 13px;
   color: #6d4a2a;
   margin-top: 4px;
 `;
-
 const SectionCard = styled.section`
   background: #ffffff;
   border-radius: 20px;
   padding: 15px 24px 24px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 `;
-
 const SectionTitle = styled.h3`
   font-size: 20px;
   font-weight: 700;
@@ -471,21 +536,18 @@ const SectionTitle = styled.h3`
   align-items: center;
   gap: 8px;
 `;
-
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 `;
-
 const TabContainer = styled.div`
   display: flex;
   background: #f4efe9;
   padding: 4px;
   border-radius: 20px;
 `;
-
 const TabButton = styled.button`
   padding: 6px 16px;
   border-radius: 16px;
@@ -499,13 +561,11 @@ const TabButton = styled.button`
     props.active ? "0 2px 6px rgba(0,0,0,0.05)" : "none"};
   transition: all 0.2s;
 `;
-
 const ListContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
 `;
-
 const ItemCard = styled.div`
   display: flex;
   align-items: center;
@@ -517,13 +577,11 @@ const ItemCard = styled.div`
     padding-bottom: 0;
   }
 `;
-
 const RankInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
 `;
-
 const RankBadge = styled.div`
   width: 24px;
   height: 24px;
@@ -540,25 +598,20 @@ const RankBadge = styled.div`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
-
 const ItemDetails = styled.div`
   display: flex;
   flex-direction: column;
 `;
-
 const ItemName = styled.div`
   font-size: 15px;
   font-weight: 600;
   color: #3c2a1b;
 `;
-
 const ItemCategory = styled.div`
   font-size: 12px;
   color: #888;
 `;
-
 const WearInfo = styled.div`
   display: flex;
   flex-direction: column;
@@ -566,7 +619,6 @@ const WearInfo = styled.div`
   gap: 4px;
   min-width: 80px;
 `;
-
 const WearCount = styled.div`
   font-size: 13px;
   color: #6d4a2a;
@@ -575,7 +627,6 @@ const WearCount = styled.div`
     font-weight: 700;
   }
 `;
-
 const ProgressBarContainer = styled.div`
   width: 100%;
   height: 6px;
@@ -583,7 +634,6 @@ const ProgressBarContainer = styled.div`
   border-radius: 4px;
   overflow: hidden;
 `;
-
 const ProgressBar = styled.div`
   height: 100%;
   width: ${(props) => props.width}%;
@@ -591,7 +641,6 @@ const ProgressBar = styled.div`
   border-radius: 4px;
   transition: width 0.5s ease-in-out;
 `;
-
 const ChartAndDetailsContainer = styled.div`
   display: flex;
   align-items: center;
@@ -601,13 +650,11 @@ const ChartAndDetailsContainer = styled.div`
     flex-direction: column;
   }
 `;
-
 const ChartWrapper = styled.div`
   flex: 1;
   min-width: 250px;
   height: 250px;
 `;
-
 const CategoryDetailList = styled.div`
   flex: 1;
   display: flex;
@@ -615,7 +662,6 @@ const CategoryDetailList = styled.div`
   gap: 12px;
   min-width: 200px;
 `;
-
 const CategoryDetailItem = styled.div`
   display: flex;
   align-items: center;
@@ -624,7 +670,6 @@ const CategoryDetailItem = styled.div`
   background: #f9f9f9;
   border-radius: 10px;
 `;
-
 const CategoryColorBox = styled.div`
   width: 16px;
   height: 16px;
@@ -632,14 +677,12 @@ const CategoryColorBox = styled.div`
   border-radius: 4px;
   margin-right: 10px;
 `;
-
 const CategoryName = styled.div`
   font-size: 15px;
   font-weight: 600;
   color: #3c2a1b;
   flex-grow: 1;
 `;
-
 const CategoryValue = styled.div`
   font-size: 14px;
   color: #6d4a2a;
@@ -647,7 +690,6 @@ const CategoryValue = styled.div`
     font-weight: 700;
   }
 `;
-
 const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
@@ -659,14 +701,12 @@ const EmptyState = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   text-align: center;
 `;
-
 const EmptyMessage = styled.div`
   font-size: 18px;
   font-weight: 700;
   color: #888;
   margin-bottom: 10px;
 `;
-
 const AddButton = styled.button`
   padding: 12px 24px;
   background: #8b6f4e;
@@ -678,12 +718,10 @@ const AddButton = styled.button`
   cursor: pointer;
   transition: background 0.2s;
   box-shadow: 0 4px 10px rgba(139, 111, 78, 0.3);
-
   &:hover {
     background: #a38766;
   }
 `;
-
 const EmptyChartMessage = styled.div`
   width: 100%;
   height: 100%;
@@ -695,14 +733,12 @@ const EmptyChartMessage = styled.div`
   background: #f9f9f9;
   border-radius: 12px;
 `;
-
 const EmptyListMessage = styled.div`
   text-align: center;
   color: #aaa;
   font-size: 14px;
   padding: 20px 0;
 `;
-
 const RankingGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -712,14 +748,12 @@ const RankingGrid = styled.div`
     grid-template-columns: 1fr;
   }
 `;
-
 const RankingColumn = styled.div`
   background: #fdfaf8;
   padding: 16px;
   border-radius: 12px;
   border: 1px solid #efeae4;
 `;
-
 const SubTitle = styled.h4`
   font-size: 16px;
   color: #5a4a3a;
@@ -727,40 +761,22 @@ const SubTitle = styled.h4`
   border-bottom: 2px solid #e5d8c7;
   padding-bottom: 8px;
 `;
-
 const HistoryContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
 `;
-
-const HistoryGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const GroupLabel = styled.h4`
-  font-size: 15px;
-  color: #6d4a2a;
-  margin: 0;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
-`;
-
 const GroupGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
   gap: 12px;
 `;
-
 const HistoryItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
 `;
-
 const HistoryImgWrapper = styled.div`
   width: 70px;
   height: 90px;
@@ -771,19 +787,17 @@ const HistoryImgWrapper = styled.div`
   align-items: center;
   justify-content: center;
   border: 1px solid #eee;
+  position: relative;
 `;
-
 const HistoryImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
 `;
-
 const NoImgText = styled.span`
   font-size: 11px;
   color: #aaa;
 `;
-
 const HistoryItemName = styled.span`
   font-size: 12px;
   color: #333;
@@ -792,4 +806,46 @@ const HistoryItemName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+const PeriodNav = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  background: #fdfaf8;
+  padding: 10px;
+  border-radius: 12px;
+`;
+const PeriodLabel = styled.div`
+  font-size: 16px;
+  font-weight: 700;
+  color: #3c2a1b;
+`;
+const NavButton = styled.button`
+  background: white;
+  border: 1px solid #e5d8c7;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6d4a2a;
+  &:hover {
+    background: #f4efe9;
+  }
+`;
+const CountBadge = styled.div`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(139, 111, 78, 0.9);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 10px;
+  z-index: 1;
 `;
