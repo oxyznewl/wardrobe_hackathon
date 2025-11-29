@@ -20,15 +20,10 @@ const COLORS = ["#8b6f4e", "#a89078", "#c5b19c", "#e2d2c0", "#f0e4d7"];
 
 const StatsPage = () => {
   const navigate = useNavigate();
-
-  // Context 데이터 가져오기
   const { clothes = [] } = useContext(ClothesContext);
   const { outfits = {} } = useOutfit();
 
   const [periodTab, setPeriodTab] = useState("week");
-
-  // 시간 영향을 받지 않도록 '날짜 문자열'이나 '시간 00:00:00'으로 관리하는 것이 좋습니다.
-  // 여기서는 기존 방식대로 Date 객체를 쓰되, 시간을 초기화합니다.
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -41,57 +36,138 @@ const StatsPage = () => {
     setCurrentDate(d);
   }, [periodTab]);
 
-  // --- 1. 기본 통계 데이터 계산 ---
+  // 최근 한 달간의 기록 필터링
+  const recentMonthOutfits = useMemo(() => {
+    const today = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+    oneMonthAgo.setHours(0, 0, 0, 0);
+
+    const filtered = {};
+    Object.keys(outfits).forEach((dateStr) => {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
+      if (date >= oneMonthAgo && date <= today) {
+        filtered[dateStr] = outfits[dateStr];
+      }
+    });
+    return filtered;
+  }, [outfits]);
+
+  // 최근 한 달간 각 옷 착용 횟수 카운트
+  const recentWearCounts = useMemo(() => {
+    const counts = {};
+    Object.values(recentMonthOutfits).forEach((outfit) => {
+      if (outfit?.top) {
+        const id = typeof outfit.top === "object" ? outfit.top.id : outfit.top;
+        counts[id] = (counts[id] || 0) + 1;
+      }
+      if (outfit?.bottom) {
+        const id =
+          typeof outfit.bottom === "object" ? outfit.bottom.id : outfit.bottom;
+        counts[id] = (counts[id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [recentMonthOutfits]);
+
+  // 1. 기본 통계 데이터
   const totalItems = clothes.length;
-  const totalWears = clothes.reduce(
-    (sum, item) => sum + (Number(item.wearCount) || 0),
+  const topCount = clothes.filter((c) => c.category === "top").length;
+  const bottomCount = clothes.filter((c) => c.category === "bottom").length;
+  const totalWears = Object.values(recentWearCounts).reduce(
+    (sum, count) => sum + count,
     0
   );
   const averageWears =
     totalItems > 0 ? (totalWears / totalItems).toFixed(1) : 0;
-
-  // 전체 중 가장 많이 입은 옷
   const mostWornItem = [...clothes].sort(
-    (a, b) => (b.wearCount || 0) - (a.wearCount || 0)
+    (a, b) => (recentWearCounts[b.id] || 0) - (recentWearCounts[a.id] || 0)
   )[0];
+  const mostWornCount = mostWornItem
+    ? recentWearCounts[mostWornItem.id] || 0
+    : 0;
 
-  // --- 2. 상의 / 하의 랭킹 (Top 3) ---
+  // 2. 상의 / 하의 랭킹
   const topClothes = clothes.filter((c) => c.category === "top");
   const sortedTop = [...topClothes]
-    .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
+    .sort(
+      (a, b) => (recentWearCounts[b.id] || 0) - (recentWearCounts[a.id] || 0)
+    )
     .slice(0, 3);
-  const maxTopWear = sortedTop.length > 0 ? sortedTop[0].wearCount : 0;
+  const sortedTopWithCount = sortedTop.map((item) => ({
+    ...item,
+    periodCount: recentWearCounts[item.id] || 0,
+  }));
+  const maxTopWear =
+    sortedTopWithCount.length > 0 ? sortedTopWithCount[0].periodCount : 0;
 
   const bottomClothes = clothes.filter((c) => c.category === "bottom");
   const sortedBottom = [...bottomClothes]
-    .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
+    .sort(
+      (a, b) => (recentWearCounts[b.id] || 0) - (recentWearCounts[a.id] || 0)
+    )
     .slice(0, 3);
-  const maxBottomWear = sortedBottom.length > 0 ? sortedBottom[0].wearCount : 0;
+  const sortedBottomWithCount = sortedBottom.map((item) => ({
+    ...item,
+    periodCount: recentWearCounts[item.id] || 0,
+  }));
+  const maxBottomWear =
+    sortedBottomWithCount.length > 0 ? sortedBottomWithCount[0].periodCount : 0;
 
-  // --- 3. 카테고리 비율 계산 ---
-  const categoryStats = clothes.reduce((acc, item) => {
-    const category = item.category === "top" ? "상의" : "하의";
-    acc[category] = (acc[category] || 0) + (Number(item.wearCount) || 0);
-    return acc;
-  }, {});
+  // 상의 종류별 통계
+  const topTypeStats = {};
+  Object.values(recentMonthOutfits).forEach((outfit) => {
+    if (outfit?.top) {
+      // 옷 데이터 객체 가져오기
+      const item =
+        typeof outfit.top === "object"
+          ? outfit.top
+          : clothes.find((c) => c.id == outfit.top);
 
-  const categoryChartData = Object.entries(categoryStats).map(
-    ([name, value]) => ({ name, value })
-  );
+      if (item) {
+        // item.type이 있으면 쓰고, 없으면 '기타'
+        const typeName = item.type || "기타";
+        topTypeStats[typeName] = (topTypeStats[typeName] || 0) + 1;
+      }
+    }
+  });
 
-  // 날짜 이동 핸들러
+  const topTypeData = Object.entries(topTypeStats)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // [하의] 종류별 통계
+  const bottomTypeStats = {};
+  Object.values(recentMonthOutfits).forEach((outfit) => {
+    if (outfit?.bottom) {
+      const item =
+        typeof outfit.bottom === "object"
+          ? outfit.bottom
+          : clothes.find((c) => c.id == outfit.bottom);
+
+      if (item) {
+        const typeName = item.type || "기타";
+        bottomTypeStats[typeName] = (bottomTypeStats[typeName] || 0) + 1;
+      }
+    }
+  });
+
+  const bottomTypeData = Object.entries(bottomTypeStats)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // 4. 기간별 착용 기록
   const movePeriod = (direction) => {
     const newDate = new Date(currentDate);
     if (periodTab === "week") {
       newDate.setDate(newDate.getDate() + direction * 7);
     } else {
-      // 월 이동 시 1일로 설정하여 월말 계산 오류 방지
       newDate.setMonth(newDate.getMonth() + direction, 1);
     }
     setCurrentDate(newDate);
   };
 
-  // 현재 보고 있는 기간의 시작/끝 날짜 및 라벨 계산
   const { periodLabel, startRange, endRange } = useMemo(() => {
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
@@ -100,65 +176,47 @@ const StatsPage = () => {
 
     if (periodTab === "week") {
       const day = currentDate.getDay();
-      s = new Date(y, m, d - day); // 일요일
-      e = new Date(y, m, d + (6 - day)); // 토요일
+      s = new Date(y, m, d - day);
+      e = new Date(y, m, d + (6 - day));
       s.setHours(0, 0, 0, 0);
       e.setHours(23, 59, 59, 999);
-
-      // 주차 계산
       const firstDayOfMonth = new Date(s.getFullYear(), s.getMonth(), 1);
       const weekNum = Math.ceil((s.getDate() + firstDayOfMonth.getDay()) / 7);
-      const labelMonth = s.getMonth() + 1;
-
-      label = `${labelMonth}월 ${weekNum}주차 (${
+      label = `${s.getMonth() + 1}월 ${weekNum}주차 (${
         s.getMonth() + 1
       }.${s.getDate()} ~ ${e.getMonth() + 1}.${e.getDate()})`;
     } else {
       s = new Date(y, m, 1);
       s.setHours(0, 0, 0, 0);
-
-      e = new Date(y, m + 1, 0); // 다음 달 0일 = 이번 달 말일
+      e = new Date(y, m + 1, 0);
       e.setHours(23, 59, 59, 999);
-
       label = `${y}년 ${m + 1}월`;
     }
     return { periodLabel: label, startRange: s, endRange: e };
   }, [currentDate, periodTab]);
 
-  // --- 🔥 [핵심 수정] 해당 기간 아이템 필터링 및 카운팅 ---
   const currentPeriodItems = useMemo(() => {
     if (!outfits) return [];
-
     const itemMap = {};
-
-    // outfits = { "2023-11-29": { top: {id:1, ...}, bottom: {id:2, ...} }, ... }
     Object.keys(outfits).forEach((dateStr) => {
-      // 1. 날짜 비교를 위해 파싱 (YYYY-MM-DD)
       const [y, m, d] = dateStr.split("-").map(Number);
       const checkDate = new Date(y, m - 1, d);
-      // 비교를 위해 시간 통일 (중간 시간인 12시로 설정하여 타임존 이슈 회피)
       checkDate.setHours(12, 0, 0, 0);
 
-      // 2. 기간 내 포함 여부 확인
       if (
         checkDate.getTime() >= startRange.getTime() &&
         checkDate.getTime() <= endRange.getTime()
       ) {
         const outfit = outfits[dateStr];
         const items = [];
-
-        // 3. 옷 데이터 추출 (객체인지 ID인지 확인하여 처리)
         if (outfit?.top) {
-          // 만약 top이 객체이고 id가 있다면 그대로 사용
           if (typeof outfit.top === "object" && outfit.top.id)
             items.push(outfit.top);
-          // 만약 top이 ID(숫자/문자)라면 clothes 배열에서 찾아서 사용
           else {
             const found = clothes.find((c) => c.id == outfit.top);
             if (found) items.push(found);
           }
         }
-
         if (outfit?.bottom) {
           if (typeof outfit.bottom === "object" && outfit.bottom.id)
             items.push(outfit.bottom);
@@ -167,23 +225,17 @@ const StatsPage = () => {
             if (found) items.push(found);
           }
         }
-
-        // 4. 카운팅
         items.forEach((item) => {
           if (!itemMap[item.id]) {
-            // periodCount 속성 추가하여 초기화
             itemMap[item.id] = { ...item, periodCount: 0 };
           }
           itemMap[item.id].periodCount += 1;
         });
       }
     });
-
-    // 많이 입은 순으로 정렬
     return Object.values(itemMap).sort((a, b) => b.periodCount - a.periodCount);
   }, [outfits, startRange, endRange, clothes]);
 
-  // --- 렌더링 헬퍼 ---
   const renderRankingList = (items, title, maxVal) => (
     <RankingColumn>
       <SubTitle>{title}</SubTitle>
@@ -199,11 +251,11 @@ const StatsPage = () => {
               </RankInfo>
               <WearInfo>
                 <WearCount>
-                  <strong>{item.wearCount}</strong>회
+                  <strong>{item.periodCount}</strong>회
                 </WearCount>
                 <ProgressBarContainer>
                   <ProgressBar
-                    width={(item.wearCount / maxVal) * 100}
+                    width={(item.periodCount / maxVal) * 100}
                     color={COLORS[index % COLORS.length]}
                   />
                 </ProgressBarContainer>
@@ -211,17 +263,80 @@ const StatsPage = () => {
             </ItemCard>
           ))
         ) : (
-          <EmptyListMessage>데이터가 없습니다.</EmptyListMessage>
+          <EmptyListMessage>최근 한 달간 기록이 없습니다.</EmptyListMessage>
         )}
       </ListContainer>
     </RankingColumn>
+  );
+
+  const renderPieChart = (data, title) => (
+    <ChartCard>
+      <SubTitle
+        style={{ textAlign: "center", border: "none", marginBottom: "10px" }}
+      >
+        {title}
+      </SubTitle>
+
+      {/* 차트 영역 */}
+      <div style={{ width: "100%", height: "220px", marginBottom: "10px" }}>
+        {data.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                fill="#8884d8"
+                paddingAngle={2}
+                dataKey="value"
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <RechartsTooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyChartMessage>데이터 없음</EmptyChartMessage>
+        )}
+      </div>
+
+      {/* 리스트 영역 */}
+      <CategoryDetailList>
+        {data.map((item, index) => (
+          <CategoryDetailItem key={index}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <CategoryColorBox color={COLORS[index % COLORS.length]} />
+              <CategoryName>{item.name}</CategoryName>
+            </div>
+            <CategoryValue>
+              <strong>{item.value}</strong>회
+            </CategoryValue>
+          </CategoryDetailItem>
+        ))}
+      </CategoryDetailList>
+    </ChartCard>
   );
 
   if (!clothes || clothes.length === 0) {
     return (
       <MainContainer>
         <TopBar>
-          <Title>Stats</Title>
+          <TitleArea>
+            <Title>Stats</Title>
+            <TooltipWrapper>
+              <TooltipButton>?</TooltipButton>
+              <TooltipBox>
+                나의 옷 착용 빈도와 다양한 통계를 확인할 수 있습니다.
+              </TooltipBox>
+            </TooltipWrapper>
+          </TitleArea>
           <IntroButton onClick={() => navigate("/")}>HOME →</IntroButton>
         </TopBar>
         <EmptyState>
@@ -250,48 +365,35 @@ const StatsPage = () => {
       </TopBar>
 
       <ContentArea>
-        {/* 1. 요약 정보 */}
         <SummarySection>
           <SummaryCard>
-            <SummaryLabel>총 보유 옷</SummaryLabel>
-            <SummaryValue>{totalItems}벌</SummaryValue>
-          </SummaryCard>
-          {/* <SummaryCard>
-            <SummaryLabel>총 착용 횟수</SummaryLabel>
-            <SummaryValue>{totalWears}회</SummaryValue>
+            <SummaryLabel>보유 상의</SummaryLabel>
+            <SummaryValue>{topCount}벌</SummaryValue>
           </SummaryCard>
           <SummaryCard>
-            <SummaryLabel>평균 착용 횟수</SummaryLabel>
-            <SummaryValue>{averageWears}회</SummaryValue>
-          </SummaryCard> */}
+            <SummaryLabel>보유 하의</SummaryLabel>
+            <SummaryValue>{bottomCount}벌</SummaryValue>
+          </SummaryCard>
           <SummaryCard highlight>
-            <SummaryLabel>최애 아이템</SummaryLabel>
+            <SummaryLabel>이달의 최애</SummaryLabel>
             <SummaryValue className="highlight">
-              {mostWornItem && mostWornItem.wearCount > 0
-                ? mostWornItem.name
-                : "-"}
+              {mostWornItem && mostWornCount > 0 ? mostWornItem.name : "-"}
             </SummaryValue>
-            {mostWornItem && mostWornItem.wearCount > 0 && (
-              <SummarySubValue>
-                ({mostWornItem.wearCount}회 착용)
-              </SummarySubValue>
+            {mostWornItem && mostWornCount > 0 && (
+              <SummarySubValue>({mostWornCount}회 착용)</SummarySubValue>
             )}
           </SummaryCard>
         </SummarySection>
 
-        {/* 2. 기간별 착용 기록 */}
         <SectionCard>
           <HeaderRow>
             <SectionTitle>📅 기간별 착용 기록</SectionTitle>
           </HeaderRow>
-
           <PeriodNav>
             <NavButton onClick={() => movePeriod(-1)}>◀</NavButton>
             <PeriodLabel>{periodLabel}</PeriodLabel>
             <NavButton onClick={() => movePeriod(1)}>▶</NavButton>
           </PeriodNav>
-
-          {/* 탭 버튼 위치 조정 */}
           <div
             style={{
               display: "flex",
@@ -314,14 +416,12 @@ const StatsPage = () => {
               </TabButton>
             </TabContainer>
           </div>
-
           <HistoryContainer>
             {currentPeriodItems.length > 0 ? (
               <GroupGrid>
                 {currentPeriodItems.map((item) => (
                   <HistoryItem key={item.id}>
                     <HistoryImgWrapper>
-                      {/* 횟수 뱃지 */}
                       <CountBadge>{item.periodCount}회</CountBadge>
                       {item.image ? (
                         <HistoryImg src={item.image} alt={item.name} />
@@ -341,60 +441,25 @@ const StatsPage = () => {
           </HistoryContainer>
         </SectionCard>
 
-        {/* 3. 상의 / 하의 랭킹 (Top 3) */}
         <SectionCard>
-          <SectionTitle>🏆 많이 입은 옷 Top 3</SectionTitle>
+          <SectionTitle>🏆 최근 한 달간 많이 입은 옷</SectionTitle>
           <RankingGrid>
-            {renderRankingList(sortedTop, "👕 상의 랭킹", maxTopWear)}
-            {renderRankingList(sortedBottom, "👖 하의 랭킹", maxBottomWear)}
+            {renderRankingList(sortedTopWithCount, "👕 상의 랭킹", maxTopWear)}
+            {renderRankingList(
+              sortedBottomWithCount,
+              "👖 하의 랭킹",
+              maxBottomWear
+            )}
           </RankingGrid>
         </SectionCard>
 
-        {/* 4. 카테고리 파이 차트 */}
         <SectionCard>
-          <SectionTitle>📊 카테고리별 착용 비율</SectionTitle>
-          <ChartAndDetailsContainer>
-            <ChartWrapper>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={categoryChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    fill="#8884d8"
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {categoryChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartWrapper>
+          <SectionTitle>📊 종류별 착용 비율</SectionTitle>
 
-            <CategoryDetailList>
-              {categoryChartData.map((item, index) => (
-                <CategoryDetailItem key={index}>
-                  <CategoryColorBox color={COLORS[index % COLORS.length]} />
-                  <CategoryName>{item.name}</CategoryName>
-                  <CategoryValue>
-                    <strong>{item.value}</strong>회 (
-                    {totalWears > 0
-                      ? ((item.value / totalWears) * 100).toFixed(1)
-                      : 0}
-                    %)
-                  </CategoryValue>
-                </CategoryDetailItem>
-              ))}
-            </CategoryDetailList>
-          </ChartAndDetailsContainer>
+          <ChartsGrid>
+            {renderPieChart(topTypeData, "👕 상의")}
+            {renderPieChart(bottomTypeData, "👖 하의")}
+          </ChartsGrid>
         </SectionCard>
       </ContentArea>
     </MainContainer>
@@ -403,7 +468,7 @@ const StatsPage = () => {
 
 export default StatsPage;
 
-// --- 스타일 컴포넌트 (기존과 동일) ---
+// --- 스타일 컴포넌트 ---
 const MainContainer = styled.main`
   padding-bottom: 40px;
 `;
@@ -451,15 +516,15 @@ const TooltipBox = styled.div`
   left: 28px;
   top: 50%;
   transform: translateY(-50%);
-  background: #fffdf8;
-  border: 1px solid #e5d8c7;
-  padding: 10px 14px;
-  border-radius: 8px;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border-radius: 6px;
   white-space: nowrap;
   font-size: 13px;
-  color: #4a3b2f;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  color: #333;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05);
+
   ${TooltipWrapper}:hover & {
     display: block;
   }
@@ -499,7 +564,7 @@ const SummaryCard = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 110px;
+  min-height: 80px;
 `;
 const SummaryLabel = styled.div`
   font-size: 14px;
@@ -608,10 +673,7 @@ const ItemName = styled.div`
   font-weight: 600;
   color: #3c2a1b;
 `;
-const ItemCategory = styled.div`
-  font-size: 12px;
-  color: #888;
-`;
+
 const WearInfo = styled.div`
   display: flex;
   flex-direction: column;
@@ -641,53 +703,51 @@ const ProgressBar = styled.div`
   border-radius: 4px;
   transition: width 0.5s ease-in-out;
 `;
-const ChartAndDetailsContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  gap: 24px;
-  @media (max-width: 600px) {
-    flex-direction: column;
-  }
-`;
-const ChartWrapper = styled.div`
-  flex: 1;
-  min-width: 250px;
-  height: 250px;
-`;
+
 const CategoryDetailList = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 200px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 한 줄에 2개씩 */
+  gap: 10px; /* 사이 간격 */
+  margin-top: 15px;
 `;
+
 const CategoryDetailItem = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 8px 12px; /* 패딩 줄임 */
   background: #f9f9f9;
-  border-radius: 10px;
+  border-radius: 8px;
 `;
+
 const CategoryColorBox = styled.div`
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   background: ${(props) => props.color};
-  border-radius: 4px;
-  margin-right: 10px;
+  border-radius: 3px;
+  margin-right: 8px;
+  flex-shrink: 0; /* 줄어들지 않게 고정 */
 `;
+
 const CategoryName = styled.div`
-  font-size: 15px;
+  font-size: 13px; /* 15px -> 13px */
   font-weight: 600;
   color: #3c2a1b;
   flex-grow: 1;
+  white-space: nowrap; /* 줄바꿈 방지 */
+  overflow: hidden;
+  text-overflow: ellipsis; /* 길면 ... 처리 */
 `;
+
 const CategoryValue = styled.div`
-  font-size: 14px;
+  font-size: 12px; /* 14px -> 12px */
   color: #6d4a2a;
+  margin-left: 8px;
+
   strong {
     font-weight: 700;
+    font-size: 13px;
   }
 `;
 const EmptyState = styled.div`
@@ -848,4 +908,25 @@ const CountBadge = styled.div`
   padding: 2px 5px;
   border-radius: 10px;
   z-index: 1;
+`;
+
+const ChartsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ChartCard = styled.div`
+  background: #fdfaf8;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #efeae4;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 내용물 가운데 정렬 */
 `;

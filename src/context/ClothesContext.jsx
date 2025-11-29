@@ -8,37 +8,7 @@ export const ClothesProvider = ({ children }) => {
   const [clothes, setClothes] = useState(() => {
     const savedClothes = localStorage.getItem("myClothesData");
     // 저장된 게 있으면 그거 쓰고, 없으면 기본 샘플 데이터 사용
-    return savedClothes
-      ? JSON.parse(savedClothes)
-      : [
-          {
-            id: 1,
-            name: "흰색 티셔츠",
-            category: "top",
-            type: "셔츠",
-            seasons: ["봄", "여름"],
-            wearCount: 3,
-            image: "",
-          },
-          {
-            id: 2,
-            name: "검정 긴바지",
-            category: "bottom",
-            type: "청바지",
-            seasons: ["가을", "겨울"],
-            wearCount: 7,
-            image: "",
-          },
-          {
-            id: 3,
-            name: "린넨 셔츠",
-            category: "top",
-            type: "셔츠",
-            seasons: ["여름"],
-            wearCount: 1,
-            image: "",
-          },
-        ];
+    return savedClothes ? JSON.parse(savedClothes) : [];
   });
 
   useEffect(() => {
