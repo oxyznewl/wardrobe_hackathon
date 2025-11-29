@@ -9,6 +9,7 @@ const InsertPage = () => {
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [category, setCategory] = useState("");
+  const [type, setType] = useState("");
   const [selectedSeasons, setSelectedSeasons] = useState([]);
 
   const CATEGORIES = ["카테고리 선택", "상의", "하의"];
@@ -62,6 +63,10 @@ const InsertPage = () => {
       alert("카테고리를 선택해주세요.");
       return;
     }
+    if (type == "") {
+      alert("세부 종류를 입력해주세요.");
+      return;
+    }
     if (selectedSeasons.length === 0) {
       alert("계절을 하나 이상 선택해주세요.");
       return;
@@ -71,6 +76,7 @@ const InsertPage = () => {
     addClothes({
       name,
       category: category === "상의" ? "top" : "bottom",
+      type,
       seasons: selectedSeasons,
       wearCount: 0,
       image: image.file,
@@ -108,6 +114,11 @@ const InsertPage = () => {
           </option>
         ))}
       </Select>
+      <Name
+        placeholder="세부 종류"
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+      ></Name>
       <Option className="season-checkboxes">
         {SEASONS.map((season) => (
           <label key={season}>

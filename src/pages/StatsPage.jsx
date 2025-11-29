@@ -29,11 +29,26 @@ const StatsPage = () => {
   const averageWears =
     totalItems > 0 ? (totalWears / totalItems).toFixed(1) : 0;
 
-  const sortedByWear = clothes
-    ? [...clothes].sort((a, b) => b.wearCount - a.wearCount).slice(0, 5)
+  const topClothes = clothes ? clothes.filter((c) => c.category === "top") : [];
+  const bottomClothes = clothes
+    ? clothes.filter((c) => c.category === "bottom")
     : [];
 
-  const mostWornItem = sortedByWear.length > 0 ? sortedByWear[0] : null;
+  // 상의 Top 3
+  const sortedTop = [...topClothes]
+    .sort((a, b) => b.wearCount - a.wearCount)
+    .slice(0, 3);
+
+  // 하의 Top 3
+  const sortedBottom = [...bottomClothes]
+    .sort((a, b) => b.wearCount - a.wearCount)
+    .slice(0, 3);
+
+  // (요약 정보용) 전체 1등 찾기 로직은 유지
+  const allSorted = clothes
+    ? [...clothes].sort((a, b) => b.wearCount - a.wearCount)
+    : [];
+  const mostWornItem = allSorted.length > 0 ? allSorted[0] : null;
   const maxWearCount = mostWornItem ? mostWornItem.wearCount : 0;
 
   const categoryStats = clothes
@@ -107,6 +122,43 @@ const StatsPage = () => {
       </MainContainer>
     );
   }
+
+  const renderRankingList = (items, title) => (
+    <RankingColumn>
+      <SubTitle>{title}</SubTitle>
+      <ListContainer>
+        {items.length > 0 ? (
+          items.map((item, index) => (
+            <ItemCard key={item.id}>
+              <RankInfo>
+                <RankBadge index={index}>{index + 1}</RankBadge>
+                <ItemDetails>
+                  <ItemName>{item.name}</ItemName>
+                </ItemDetails>
+              </RankInfo>
+              <WearInfo>
+                <WearCount>
+                  <strong>{item.wearCount}</strong>회
+                </WearCount>
+                <ProgressBarContainer>
+                  <ProgressBar
+                    width={
+                      maxWearCount > 0
+                        ? (item.wearCount / maxWearCount) * 100
+                        : 0
+                    }
+                    color={COLORS[index % COLORS.length]}
+                  />
+                </ProgressBarContainer>
+              </WearInfo>
+            </ItemCard>
+          ))
+        ) : (
+          <EmptyListMessage>데이터가 없습니다.</EmptyListMessage>
+        )}
+      </ListContainer>
+    </RankingColumn>
+  );
 
   return (
     <MainContainer>
@@ -211,37 +263,11 @@ const StatsPage = () => {
 
         {/* 3. Top 5 리스트 */}
         <SectionCard>
-          <SectionTitle>🏆 가장 많이 입은 옷 Top 5</SectionTitle>
-          <ListContainer>
-            {sortedByWear.map((item, index) => (
-              <ItemCard key={item.id}>
-                <RankInfo>
-                  <RankBadge index={index}>{index + 1}</RankBadge>
-                  <ItemDetails>
-                    <ItemName>{item.name}</ItemName>
-                    <ItemCategory>
-                      {item.category === "top" ? "상의" : "하의"}
-                    </ItemCategory>
-                  </ItemDetails>
-                </RankInfo>
-                <WearInfo>
-                  <WearCount>
-                    <strong>{item.wearCount}</strong>회
-                  </WearCount>
-                  <ProgressBarContainer>
-                    <ProgressBar
-                      width={
-                        maxWearCount > 0
-                          ? (item.wearCount / maxWearCount) * 100
-                          : 0
-                      }
-                      color={COLORS[index % COLORS.length]}
-                    />
-                  </ProgressBarContainer>
-                </WearInfo>
-              </ItemCard>
-            ))}
-          </ListContainer>
+          <SectionTitle>🏆 많이 입은 옷 Top 3</SectionTitle>
+          <RankingGrid>
+            {renderRankingList(sortedTop, "👕 상의 랭킹")}
+            {renderRankingList(sortedBottom, "👖 하의 랭킹")}
+          </RankingGrid>
         </SectionCard>
 
         {/* 4. 파이 차트 */}
@@ -669,4 +695,29 @@ const EmptyChartMessage = styled.div`
   font-size: 14px;
   background: #f9f9f9;
   border-radius: 12px;
+`;
+
+const RankingGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const RankingColumn = styled.div`
+  background: #fdfaf8;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #efeae4;
+`;
+
+const SubTitle = styled.h4`
+  font-size: 16px;
+  color: #5a4a3a;
+  margin: 0 0 16px 0;
+  border-bottom: 2px solid #e5d8c7;
+  padding-bottom: 8px;
 `;

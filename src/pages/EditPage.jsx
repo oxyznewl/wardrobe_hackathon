@@ -16,6 +16,7 @@ const EditPage = () => {
   // 초기 값 세팅
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState(item.category);
+  const [type, setType] = useState(item.type);
   const [selectedSeasons, setSelectedSeasons] = useState(item.seasons);
   const [image, setImage] = useState(
     item.image
@@ -62,6 +63,7 @@ const EditPage = () => {
     updateClothes(id, {
       name,
       category,
+      type,
       seasons: selectedSeasons,
       image: image?.file ?? item.image,
     });
@@ -97,6 +99,8 @@ const EditPage = () => {
           </option>
         ))}
       </Select>
+
+      <Name value={type} onChange={(e) => setType(e.target.value)} />
 
       <Option>
         {SEASONS.map((season) => (
