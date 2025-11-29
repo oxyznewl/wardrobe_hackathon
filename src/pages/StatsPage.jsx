@@ -94,8 +94,6 @@ const StatsPage = () => {
         <IntroButton onClick={() => navigate("/")}>HOME →</IntroButton>
       </TopBar>
 
-      <h3>옷 통계 페이지</h3>
-      <p>옷별 착용 횟수, 주/월별 통계 계산, 통계 페이지 그래프/표</p>
       <Section>
         <h3>옷별 착용 횟수</h3>
         <BarChart width={600} height={300} data={clothes}>
@@ -104,7 +102,7 @@ const StatsPage = () => {
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="wearCount" fill="#8884d8" />
+          <Bar dataKey="wearCount" fill="#6d4a2a" />
         </BarChart>
       </Section>
 
@@ -136,8 +134,6 @@ const StatsPage = () => {
 };
 
 export default StatsPage;
-
-// --- 스타일 컴포넌트 (CalendarPage에서 가져옴) ---
 
 const TopBar = styled.div`
   display: flex;
@@ -212,4 +208,5 @@ const IntroButton = styled.button`
 
 const Section = styled.div`
   margin-bottom: 40px;
+  justify-self: center;
 `;

@@ -53,6 +53,7 @@ const DetailPage = () => {
       <Name>{item.name}</Name>
       <TagContainer>
         <Tag>{getCategoryLabel(item.category)}</Tag>
+        <Tag>{item.type}</Tag>
         <Tag>{item.seasons.join(", ")}</Tag>
       </TagContainer>
       <Script>총 {item.wearCount}번 입었어요</Script>
