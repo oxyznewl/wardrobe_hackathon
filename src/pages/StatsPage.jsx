@@ -1,7 +1,72 @@
+import { useContext } from "react";
 import styled from "styled-components";
+import { ClothesContext } from "../context/ClothesContext";
+import { useOutfit } from "../context/OutfitContext";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
 import { useNavigate } from "react-router-dom";
 
 const StatsPage = () => {
+  const { clothes } = useContext(ClothesContext);
+  const { outfits } = useOutfit();
+
+  const getWeekNumber = (date) => {
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    );
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  };
+
+  // outfits 데이터를 이용해서 주/월별 통계 생성
+  const calcStats = (clothes, outfits) => {
+    const weekly = {};
+    const monthly = {};
+
+    Object.entries(outfits).forEach(([dateStr, outfit]) => {
+      const date = new Date(dateStr);
+      const week = getWeekNumber(date);
+      const month = date.getMonth() + 1;
+
+      Object.values(outfit).forEach((clothId) => {
+        const cloth = clothes.find((c) => c.id === clothId);
+        if (!cloth) return;
+
+        // 주별
+        const weekKey = `Week ${week}`;
+        weekly[weekKey] = (weekly[weekKey] || 0) + 1;
+
+        // 월별
+        const monthKey = `Month ${month}`;
+        monthly[monthKey] = (monthly[monthKey] || 0) + 1;
+      });
+    });
+    // 객체를 그래프용 배열로 변환
+    const weeklyData = Object.entries(weekly).map(([name, count]) => ({
+      name,
+      count,
+    }));
+    const monthlyData = Object.entries(monthly).map(([name, count]) => ({
+      name,
+      count,
+    }));
+
+    return { weeklyData, monthlyData };
+  };
+
+  const { weeklyData, monthlyData } = calcStats(clothes, outfits);
+
   const navigate = useNavigate();
 
   return (
@@ -31,6 +96,41 @@ const StatsPage = () => {
 
       <h3>옷 통계 페이지</h3>
       <p>옷별 착용 횟수, 주/월별 통계 계산, 통계 페이지 그래프/표</p>
+      <Section>
+        <h3>옷별 착용 횟수</h3>
+        <BarChart width={600} height={300} data={clothes}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="wearCount" fill="#8884d8" />
+        </BarChart>
+      </Section>
+
+      <Section>
+        <h3>주별 착용 횟수</h3>
+        <LineChart width={600} height={300} data={weeklyData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="count" stroke="#82ca9d" />
+        </LineChart>
+      </Section>
+
+      <Section>
+        <h3>월별 착용 횟수</h3>
+        <LineChart width={600} height={300} data={monthlyData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="count" stroke="#ffc658" />
+        </LineChart>
+      </Section>
     </main>
   );
 };
@@ -108,4 +208,8 @@ const IntroButton = styled.button`
   &:hover {
     background: #e0e0e0;
   }
+`;
+
+const Section = styled.div`
+  margin-bottom: 40px;
 `;
