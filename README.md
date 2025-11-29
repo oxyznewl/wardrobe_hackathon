@@ -135,11 +135,7 @@ app/
 
 [API 명세서](https://www.notion.so/2b8837fdd1cb80199649d7620fe4d3d9?pvs=21)
 
-![image.png](attachment:e960c842-442b-4200-83cf-d780d4eb1d19:image.png)
-
 💾 **Database 구조**
-
-![image.png](attachment:46eac02c-8d47-41f6-9272-d3e63eb718f2:image.png)
 
 [자세한 백엔드 기능 설명](https://www.notion.so/2b8837fdd1cb80af9a69f215b910fe60?pvs=21)
 
