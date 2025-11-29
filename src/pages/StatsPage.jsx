@@ -7,105 +7,145 @@ import {
   Cell,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import { ClothesContext } from "../context/ClothesContext";
 import { useOutfit } from "../context/OutfitContext";
 
-// 카테고리별 색상
 const COLORS = ["#8b6f4e", "#a89078", "#c5b19c", "#e2d2c0", "#f0e4d7"];
 
 const StatsPage = () => {
   const navigate = useNavigate();
 
-  const { clothes } = useContext(ClothesContext);
-  const { outfits } = useOutfit();
+  // Context 데이터 가져오기 (데이터가 없으면 빈 객체/배열로 처리)
+  const { clothes = [] } = useContext(ClothesContext);
+  const { outfits = {} } = useOutfit();
 
   const [periodTab, setPeriodTab] = useState("week");
 
-  const totalItems = clothes ? clothes.length : 0;
-  const totalWears = clothes
-    ? clothes.reduce((sum, item) => sum + item.wearCount, 0)
-    : 0;
+  // --- 1. 기본 통계 데이터 계산 ---
+  const totalItems = clothes.length;
+  const totalWears = clothes.reduce(
+    (sum, item) => sum + (item.wearCount || 0),
+    0
+  );
   const averageWears =
     totalItems > 0 ? (totalWears / totalItems).toFixed(1) : 0;
 
-  const topClothes = clothes ? clothes.filter((c) => c.category === "top") : [];
-  const bottomClothes = clothes
-    ? clothes.filter((c) => c.category === "bottom")
-    : [];
+  // 전체 중 가장 많이 입은 옷 (요약 카드용)
+  const mostWornItem = [...clothes].sort(
+    (a, b) => b.wearCount - a.wearCount
+  )[0];
 
-  // 상의 Top 3
+  // --- 2. 상의 / 하의 랭킹 (Top 3) 분리 로직 ---
+
+  // 상의 필터링 및 정렬
+  const topClothes = clothes.filter((c) => c.category === "top");
   const sortedTop = [...topClothes]
     .sort((a, b) => b.wearCount - a.wearCount)
     .slice(0, 3);
+  const maxTopWear = sortedTop.length > 0 ? sortedTop[0].wearCount : 0;
 
-  // 하의 Top 3
+  // 하의 필터링 및 정렬
+  const bottomClothes = clothes.filter((c) => c.category === "bottom");
   const sortedBottom = [...bottomClothes]
     .sort((a, b) => b.wearCount - a.wearCount)
     .slice(0, 3);
+  const maxBottomWear = sortedBottom.length > 0 ? sortedBottom[0].wearCount : 0;
 
-  // (요약 정보용) 전체 1등 찾기 로직은 유지
-  const allSorted = clothes
-    ? [...clothes].sort((a, b) => b.wearCount - a.wearCount)
-    : [];
-  const mostWornItem = allSorted.length > 0 ? allSorted[0] : null;
-  const maxWearCount = mostWornItem ? mostWornItem.wearCount : 0;
-
-  const categoryStats = clothes
-    ? clothes.reduce((acc, item) => {
-        const category = item.category === "top" ? "상의" : "하의";
-        acc[category] = (acc[category] || 0) + item.wearCount;
-        return acc;
-      }, {})
-    : {};
+  // --- 3. 카테고리 비율 계산 (파이 차트용) ---
+  const categoryStats = clothes.reduce((acc, item) => {
+    const category = item.category === "top" ? "상의" : "하의";
+    acc[category] = (acc[category] || 0) + (item.wearCount || 0);
+    return acc;
+  }, {});
 
   const categoryChartData = Object.entries(categoryStats).map(
     ([name, value]) => ({ name, value })
   );
 
-  // 주별/월별 통계 계산
-  const periodData = useMemo(() => {
-    if (!outfits) return { week: [], month: [] };
+  // --- 4. 주별/월별 통계 계산 (막대 차트용) ---
+  const groupedHistory = useMemo(() => {
+    if (!outfits) return {};
 
-    const weekMap = {};
-    const monthMap = {};
+    const groups = {};
 
-    // outfits 객체: { "2023-10-01": {top:..., bottom:...}, ... }
-    Object.keys(outfits).forEach((dateStr) => {
+    // 날짜를 최신순으로 정렬하여 처리
+    const sortedDates = Object.keys(outfits).sort().reverse();
+
+    sortedDates.forEach((dateStr) => {
+      const outfit = outfits[dateStr];
+      if (!outfit) return;
+
+      // 유효한 옷이 있는지 확인
+      const items = [];
+      if (outfit.top && outfit.top.id) items.push(outfit.top);
+      if (outfit.bottom && outfit.bottom.id) items.push(outfit.bottom);
+
+      if (items.length === 0) return;
+
       const date = new Date(dateStr);
-      // 데이터 유효성 체크 (해당 날짜에 옷이 하나라도 있는지)
-      const hasItem = outfits[dateStr]?.top?.id || outfits[dateStr]?.bottom?.id;
-      if (!hasItem) return;
+      let key = "";
 
-      // -- 월별 데이터 --
-      const monthKey = `${date.getMonth() + 1}월`;
-      monthMap[monthKey] = (monthMap[monthKey] || 0) + 1;
+      if (periodTab === "week") {
+        // 주별 키 생성 (예: 11월 4주)
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const weekNum = Math.ceil((date.getDate() + firstDay.getDay()) / 7);
+        key = `${date.getMonth() + 1}월 ${weekNum}주`;
+      } else {
+        // 월별 키 생성 (예: 11월)
+        key = `${date.getMonth() + 1}월`;
+      }
 
-      // -- 주별 데이터 (간단하게 '월'의 몇째 주인지 계산) --
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-      const weekNum = Math.ceil((date.getDate() + firstDay.getDay()) / 7);
-      const weekKey = `${date.getMonth() + 1}월 ${weekNum}주`;
-      weekMap[weekKey] = (weekMap[weekKey] || 0) + 1;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      // 해당 기간 그룹에 옷 아이템들을 추가
+      groups[key].push(...items);
     });
 
-    // 객체를 배열로 변환 및 정렬 (키 기준 정렬)
-    const formatData = (map) =>
-      Object.entries(map)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { numeric: true })
-        ); // 숫자 기준 정렬
+    return groups;
+  }, [outfits, periodTab]);
 
-    return {
-      week: formatData(weekMap),
-      month: formatData(monthMap),
-    };
-  }, [outfits]);
+  // --- 화면 렌더링 헬퍼 함수 (랭킹 리스트) ---
+  const renderRankingList = (items, title, maxVal) => (
+    <RankingColumn>
+      <SubTitle>{title}</SubTitle>
+      <ListContainer>
+        {items.length > 0 && maxVal > 0 ? (
+          items.map((item, index) => (
+            <ItemCard key={item.id}>
+              <RankInfo>
+                <RankBadge index={index}>{index + 1}</RankBadge>
+                <ItemDetails>
+                  <ItemName>{item.name}</ItemName>
+                </ItemDetails>
+              </RankInfo>
+              <WearInfo>
+                <WearCount>
+                  <strong>{item.wearCount}</strong>회
+                </WearCount>
+                <ProgressBarContainer>
+                  <ProgressBar
+                    width={(item.wearCount / maxVal) * 100}
+                    color={COLORS[index % COLORS.length]}
+                  />
+                </ProgressBarContainer>
+              </WearInfo>
+            </ItemCard>
+          ))
+        ) : (
+          <EmptyListMessage>데이터가 없습니다.</EmptyListMessage>
+        )}
+      </ListContainer>
+    </RankingColumn>
+  );
 
-  const currentPeriodData =
-    periodTab === "week" ? periodData.week : periodData.month;
-
-  // 데이터 없을 때 화면
+  // --- 데이터가 없을 때 표시할 화면 ---
   if (!clothes || clothes.length === 0) {
     return (
       <MainContainer>
@@ -122,43 +162,6 @@ const StatsPage = () => {
       </MainContainer>
     );
   }
-
-  const renderRankingList = (items, title) => (
-    <RankingColumn>
-      <SubTitle>{title}</SubTitle>
-      <ListContainer>
-        {items.length > 0 ? (
-          items.map((item, index) => (
-            <ItemCard key={item.id}>
-              <RankInfo>
-                <RankBadge index={index}>{index + 1}</RankBadge>
-                <ItemDetails>
-                  <ItemName>{item.name}</ItemName>
-                </ItemDetails>
-              </RankInfo>
-              <WearInfo>
-                <WearCount>
-                  <strong>{item.wearCount}</strong>회
-                </WearCount>
-                <ProgressBarContainer>
-                  <ProgressBar
-                    width={
-                      maxWearCount > 0
-                        ? (item.wearCount / maxWearCount) * 100
-                        : 0
-                    }
-                    color={COLORS[index % COLORS.length]}
-                  />
-                </ProgressBarContainer>
-              </WearInfo>
-            </ItemCard>
-          ))
-        ) : (
-          <EmptyListMessage>데이터가 없습니다.</EmptyListMessage>
-        )}
-      </ListContainer>
-    </RankingColumn>
-  );
 
   return (
     <MainContainer>
@@ -177,7 +180,7 @@ const StatsPage = () => {
       </TopBar>
 
       <ContentArea>
-        {/* 1. 요약 정보 */}
+        {/* 1. 요약 정보 카드 */}
         <SummarySection>
           <SummaryCard>
             <SummaryLabel>총 보유 옷</SummaryLabel>
@@ -194,9 +197,11 @@ const StatsPage = () => {
           <SummaryCard highlight>
             <SummaryLabel>최애 아이템</SummaryLabel>
             <SummaryValue className="highlight">
-              {mostWornItem ? mostWornItem.name : "-"}
+              {mostWornItem && mostWornItem.wearCount > 0
+                ? mostWornItem.name
+                : "-"}
             </SummaryValue>
-            {mostWornItem && (
+            {mostWornItem && mostWornItem.wearCount > 0 && (
               <SummarySubValue>
                 ({mostWornItem.wearCount}회 착용)
               </SummarySubValue>
@@ -204,10 +209,10 @@ const StatsPage = () => {
           </SummaryCard>
         </SummarySection>
 
-        {/* 2. 주별/월별 통계 */}
+        {/* 2. 주별/월별 통계 차트 */}
         <SectionCard>
           <HeaderRow>
-            <SectionTitle>📅 기간별 착용 추이</SectionTitle>
+            <SectionTitle>📅 기간별 착용 기록</SectionTitle>
             <TabContainer>
               <TabButton
                 active={periodTab === "week"}
@@ -224,53 +229,45 @@ const StatsPage = () => {
             </TabContainer>
           </HeaderRow>
 
-          <ChartWrapper>
-            {currentPeriodData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={currentPeriodData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: "#666" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis hide domain={[0, "dataMax + 2"]} />
-                  <RechartsTooltip
-                    cursor={{ fill: "#f4f4f4" }}
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    }}
-                  />
-                  <Bar
-                    dataKey="count"
-                    fill="#8b6f4e"
-                    radius={[4, 4, 0, 0]}
-                    barSize={30}
-                    label={{ position: "top", fill: "#8b6f4e", fontSize: 12 }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+          <HistoryContainer>
+            {Object.keys(groupedHistory).length > 0 ? (
+              Object.entries(groupedHistory).map(([period, items]) => (
+                <HistoryGroup key={period}>
+                  <GroupLabel>{period}</GroupLabel>
+                  <GroupGrid>
+                    {items.map((item, index) => (
+                      <HistoryItem key={`${period}-${index}`}>
+                        <HistoryImgWrapper>
+                          {item.image ? (
+                            <HistoryImg src={item.image} alt={item.name} />
+                          ) : (
+                            <NoImgText>No Img</NoImgText>
+                          )}
+                        </HistoryImgWrapper>
+                        <HistoryItemName>{item.name}</HistoryItemName>
+                      </HistoryItem>
+                    ))}
+                  </GroupGrid>
+                </HistoryGroup>
+              ))
             ) : (
               <EmptyChartMessage>
-                아직 기록된 코디 데이터가 없습니다.
+                해당 기간의 기록이 없습니다.
               </EmptyChartMessage>
             )}
-          </ChartWrapper>
+          </HistoryContainer>
         </SectionCard>
 
-        {/* 3. Top 5 리스트 */}
+        {/* 3. 상의 / 하의 랭킹 (Top 3) */}
         <SectionCard>
           <SectionTitle>🏆 많이 입은 옷 Top 3</SectionTitle>
           <RankingGrid>
-            {renderRankingList(sortedTop, "👕 상의 랭킹")}
-            {renderRankingList(sortedBottom, "👖 하의 랭킹")}
+            {renderRankingList(sortedTop, "👕 상의 랭킹", maxTopWear)}
+            {renderRankingList(sortedBottom, "👖 하의 랭킹", maxBottomWear)}
           </RankingGrid>
         </SectionCard>
 
-        {/* 4. 파이 차트 */}
+        {/* 4. 카테고리 파이 차트 */}
         <SectionCard>
           <SectionTitle>📊 카테고리별 착용 비율</SectionTitle>
           <ChartAndDetailsContainer>
@@ -461,7 +458,7 @@ const SummarySubValue = styled.div`
 const SectionCard = styled.section`
   background: #ffffff;
   border-radius: 20px;
-  padding: 24px;
+  padding: 15px 24px 24px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 `;
 
@@ -469,22 +466,51 @@ const SectionTitle = styled.h3`
   font-size: 20px;
   font-weight: 700;
   color: #3c2a1b;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
 `;
 
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  background: #f4efe9;
+  padding: 4px;
+  border-radius: 20px;
+`;
+
+const TabButton = styled.button`
+  padding: 6px 16px;
+  border-radius: 16px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: ${(props) => (props.active ? "#fff" : "transparent")};
+  color: ${(props) => (props.active ? "#8b6f4e" : "#888")};
+  box-shadow: ${(props) =>
+    props.active ? "0 2px 6px rgba(0,0,0,0.05)" : "none"};
+  transition: all 0.2s;
+`;
+
 const ListContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 `;
 
 const ItemCard = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #f0f0f0;
   &:last-child {
     border-bottom: none;
@@ -495,12 +521,12 @@ const ItemCard = styled.div`
 const RankInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 `;
 
 const RankBadge = styled.div`
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: ${(props) => {
     if (props.index === 0) return "#ffd700";
     if (props.index === 1) return "#c0c0c0";
@@ -509,7 +535,7 @@ const RankBadge = styled.div`
   }};
   color: ${(props) => (props.index < 3 ? "#ffffff" : "#888888")};
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -523,13 +549,13 @@ const ItemDetails = styled.div`
 `;
 
 const ItemName = styled.div`
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #3c2a1b;
 `;
 
 const ItemCategory = styled.div`
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
 `;
 
@@ -537,22 +563,22 @@ const WearInfo = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  min-width: 120px;
+  gap: 4px;
+  min-width: 80px;
 `;
 
 const WearCount = styled.div`
-  font-size: 14px;
+  font-size: 13px;
   color: #6d4a2a;
   strong {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
   }
 `;
 
 const ProgressBarContainer = styled.div`
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: #f0f0f0;
   border-radius: 4px;
   overflow: hidden;
@@ -652,37 +678,10 @@ const AddButton = styled.button`
   cursor: pointer;
   transition: background 0.2s;
   box-shadow: 0 4px 10px rgba(139, 111, 78, 0.3);
+
   &:hover {
     background: #a38766;
   }
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const TabContainer = styled.div`
-  display: flex;
-  background: #f4efe9;
-  padding: 4px;
-  border-radius: 20px;
-`;
-
-const TabButton = styled.button`
-  padding: 6px 16px;
-  border-radius: 16px;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  background: ${(props) => (props.active ? "#fff" : "transparent")};
-  color: ${(props) => (props.active ? "#8b6f4e" : "#888")};
-  box-shadow: ${(props) =>
-    props.active ? "0 2px 6px rgba(0,0,0,0.05)" : "none"};
-  transition: all 0.2s;
 `;
 
 const EmptyChartMessage = styled.div`
@@ -695,6 +694,13 @@ const EmptyChartMessage = styled.div`
   font-size: 14px;
   background: #f9f9f9;
   border-radius: 12px;
+`;
+
+const EmptyListMessage = styled.div`
+  text-align: center;
+  color: #aaa;
+  font-size: 14px;
+  padding: 20px 0;
 `;
 
 const RankingGrid = styled.div`
@@ -720,4 +726,70 @@ const SubTitle = styled.h4`
   margin: 0 0 16px 0;
   border-bottom: 2px solid #e5d8c7;
   padding-bottom: 8px;
+`;
+
+const HistoryContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const HistoryGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const GroupLabel = styled.h4`
+  font-size: 15px;
+  color: #6d4a2a;
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+`;
+
+const GroupGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 12px;
+`;
+
+const HistoryItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+`;
+
+const HistoryImgWrapper = styled.div`
+  width: 70px;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f4f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #eee;
+`;
+
+const HistoryImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const NoImgText = styled.span`
+  font-size: 11px;
+  color: #aaa;
+`;
+
+const HistoryItemName = styled.span`
+  font-size: 12px;
+  color: #333;
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

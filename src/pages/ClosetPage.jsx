@@ -89,24 +89,21 @@ const TooltipWrapper = styled.div`
 `;
 
 const TooltipButton = styled.button`
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: #e5e5e5;
-  border: 1px solid #ccc;
+  background: #e5d8c7;
+  border: none;
   cursor: pointer;
   font-size: 12px;
   font-weight: bold;
-  color: #333;
-  padding: 0;
-  line-height: 1;
+  color: #6d4a2a;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
 
   &:hover {
-    background: #d5d5d5;
+    background: #d4c4b0;
   }
 `;
 
